@@ -17,9 +17,7 @@ for path in sorted(Path("app/build/test-results/testDebugUnitTest").glob("TEST-*
             text = failure.attrib.get("message", "")
             trace = (failure.text or "").splitlines()[:7]
             detail = "\n".join([text] + trace)
-            print("TEST_FAILURE_BEGIN\n" + detail + "\nTEST_FAILURE_END", flush=True)
             summary.append("\n### " + case.attrib["name"] + "\n```\n" + detail + "\n```\n")
 report = "\n".join(summary)
-print(report)
 with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as output:
     output.write(report)

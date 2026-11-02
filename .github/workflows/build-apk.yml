@@ -23,10 +23,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configurar JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -40,7 +40,7 @@ jobs:
           sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
 
       - name: Conservar la clave de firma entre ejecuciones
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .ci/keyboard-debug.keystore
           key: ${{ runner.os }}-keyboard-debug-keystore-v2
@@ -89,12 +89,16 @@ jobs:
         run: |
           if [ -d app/build/test-results/testDebugUnitTest ]; then
             python3 tools/report_test_failures.py > test-summary.md
-            gh api "repos/$GITHUB_REPOSITORY/check-runs"               -f name="Resultados de controles"               -f head_sha="$GITHUB_SHA"               -f status="completed"               -f conclusion="neutral"               -f "output[title]=Resultados de pruebas"               -F "output[summary]=@test-summary.md"               -f "output[text]=Consulta el artefacto KeyboardFuentes-TestReport para el informe completo."
+            CONCLUSION=success
+            if grep -Eq '<(failure|error)( |>)' app/build/test-results/testDebugUnitTest/TEST-*.xml; then
+              CONCLUSION=failure
+            fi
+            gh api "repos/$GITHUB_REPOSITORY/check-runs"               -f name="Resultados de controles"               -f head_sha="$GITHUB_SHA"               -f status="completed"               -f conclusion="$CONCLUSION"               -f "output[title]=Resultados de pruebas"               -F "output[summary]=@test-summary.md"               -f "output[text]=Consulta el artefacto KeyboardFuentes-TestReport para el informe completo."
           fi
 
       - name: Publicar informe de pruebas
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: KeyboardFuentes-TestReport
           path: |
@@ -142,7 +146,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Subir APK como artefacto del workflow
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: KeyboardFuentes-APK
           path: dist/
