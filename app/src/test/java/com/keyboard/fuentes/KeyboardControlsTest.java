@@ -65,6 +65,7 @@ public class KeyboardControlsTest {
         service.setTheme(R.style.AppTheme);
         controller.create();
         editor = new EditText(service);
+        editor.setSelection(0);
         connection = new RecordingConnection(editor);
         service.connection = connection;
         service.getSharedPreferences(FontKeyboardService.PREFS_NAME, Context.MODE_PRIVATE)
@@ -77,9 +78,9 @@ public class KeyboardControlsTest {
         String[] tools = {"Cambiar fuente", "Abrir emojis", "Abrir portapapeles", "Más opciones"};
         String[] panels = {"Elige la fuente", "Emojis", "Portapapeles", "Más opciones"};
         for (int i = 0; i < tools.length; i++) {
-            click(root, tools[i]);
+            clickTool(i);
             assertTrue(visibleText(root, panels[i]));
-            click(root, tools[i]);
+            clickTool(i);
             assertFalse(visibleText(root, panels[i]));
         }
         click(root, "Ajustes del teclado");
@@ -88,7 +89,7 @@ public class KeyboardControlsTest {
     }
 
     @Test public void fontSelectionWritesStyledTextAndPersists() {
-        click(root, "Cambiar fuente");
+        clickTool(0);
         click(root, "Usar fuente Negrita");
         click(root, "Tecla a");
         assertEquals("𝐚", editor.getText().toString());
@@ -101,13 +102,13 @@ public class KeyboardControlsTest {
     @Test public void shiftLongPressAndSymbolsWork() {
         View shift = find(root, "Mayúsculas. Mantén pulsado para bloquear");
         shift.performClick();
-        click(root, "Tecla q");
+        click(root, "Tecla Q");
         assertEquals("Q", editor.getText().toString());
         click(root, "Tecla w");
         assertEquals("Qw", editor.getText().toString());
         find(root, "Mayúsculas. Mantén pulsado para bloquear").performLongClick();
-        click(root, "Tecla a");
-        click(root, "Tecla b");
+        click(root, "Tecla A");
+        click(root, "Tecla B");
         assertEquals("QwAB", editor.getText().toString());
         click(root, "Bloqueo de mayúsculas activado. Pulsa para desactivar");
         click(root, "Abrir símbolos");
@@ -174,7 +175,7 @@ public class KeyboardControlsTest {
         root.handleBack();
         click(root, "Más opciones");
         click(root, "Emojis");
-        assertTrue(visibleText(root, "Insertar emoji 😀"));
+        assertTrue(visibleDescription(root, "Insertar emoji 😀"));
     }
 
     @Test public void actionKeyUsesCurrentEditorAndMultilineFlag() {
@@ -204,6 +205,23 @@ public class KeyboardControlsTest {
         assertEquals(0, connection.batches);
     }
 
+    private void clickTool(int index) {
+        java.util.List<ToolButtonView> buttons = new java.util.ArrayList<>();
+        collectTools(root, buttons);
+        assertTrue(buttons.get(index).performClick());
+    }
+
+    private static void collectTools(View view, java.util.List<ToolButtonView> buttons) {
+        if (view instanceof ToolButtonView) {
+            buttons.add((ToolButtonView) view);
+        }
+        if (view instanceof ViewGroup) {
+            for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+                collectTools(((ViewGroup) view).getChildAt(i), buttons);
+            }
+        }
+    }
+
     private static void click(View root, String description) {
         View view = find(root, description);
         assertNotNull("Missing control: " + description, view);
@@ -225,6 +243,24 @@ public class KeyboardControlsTest {
             }
         }
         return null;
+    }
+
+    private static boolean visibleDescription(View view, String description) {
+        if (view.getVisibility() != View.VISIBLE) {
+            return false;
+        }
+        if (view.getContentDescription() != null
+                && description.contentEquals(view.getContentDescription().toString())) {
+            return true;
+        }
+        if (view instanceof ViewGroup) {
+            for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+                if (visibleDescription(((ViewGroup) view).getChildAt(i), description)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean visibleText(View view, String text) {
