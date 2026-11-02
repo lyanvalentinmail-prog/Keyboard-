@@ -1,9 +1,7 @@
 package com.keyboard.fuentes;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.view.Gravity;
-import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,16 +15,13 @@ import java.util.Locale;
 
 /** Vista completa del IME: barra de herramientas, teclas y paneles superpuestos. */
 class KeyboardRootView extends LinearLayout implements
-        FontPickerView.Listener, EmojiPanelView.Listener, MorePanelView.Listener {
+        FontPickerView.Listener, EmojiPanelView.Listener, MorePanelView.Listener,
+        ClipboardPanelView.Listener {
 
     private enum Mode {
-        KEYS, FONTS, EMOJI, MORE
+        KEYS, FONTS, EMOJI, CLIPBOARD, MORE
     }
 
-    private static final int COLOR_BG = Color.parseColor("#111111");
-    private static final int COLOR_PANEL = Color.parseColor("#141414");
-    private static final int COLOR_TOOLBAR = Color.parseColor("#181818");
-    private static final int COLOR_DIVIDER = Color.parseColor("#2A2A2A");
     private static final Locale SPANISH = Locale.forLanguageTag("es");
 
     private static final String[] NUMBERS = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"};
@@ -46,9 +41,11 @@ class KeyboardRootView extends LinearLayout implements
     private final FontPickerView fontPicker;
     private final EmojiPanelView emojiPanel;
     private final MorePanelView morePanel;
+    private final ClipboardPanelView clipboardPanel;
     private final View fontPanelWrapper;
     private final View emojiPanelWrapper;
     private final View morePanelWrapper;
+    private final View clipboardPanelWrapper;
     private final List<ToolButtonView> toolButtons = new ArrayList<>();
 
     private LinearLayout toolbar;
@@ -67,6 +64,7 @@ class KeyboardRootView extends LinearLayout implements
     private boolean capsLock = false;
     private boolean symbols = false;
     private Mode mode = Mode.KEYS;
+    private EditorAction editorAction = EditorAction.ENTER;
     private Runnable backspaceRepeat;
 
     KeyboardRootView(Context context, FontKeyboardService service) {
@@ -79,16 +77,16 @@ class KeyboardRootView extends LinearLayout implements
         toolButtonSizePx = dp(38);
 
         setOrientation(VERTICAL);
-        setBackgroundColor(COLOR_BG);
+        setBackgroundColor(PanelUi.color(context, R.color.window_bg));
 
         addView(createToolbar(), new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, toolbarHeightPx));
 
         View separator = new View(context);
-        separator.setBackgroundColor(COLOR_DIVIDER);
+        separator.setBackgroundColor(PanelUi.color(getContext(), R.color.divider));
         addView(separator, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(1)));
 
         body = new FrameLayout(context);
-        body.setBackgroundColor(COLOR_BG);
+        body.setBackgroundColor(PanelUi.color(context, R.color.window_bg));
         addView(body, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f));
 
         keyArea = new LinearLayout(context);
@@ -110,6 +108,11 @@ class KeyboardRootView extends LinearLayout implements
         morePanelWrapper = scrollablePanel(morePanel);
         morePanelWrapper.setVisibility(GONE);
         body.addView(morePanelWrapper, matchParent());
+
+        clipboardPanel = new ClipboardPanelView(context, this);
+        clipboardPanelWrapper = scrollablePanel(clipboardPanel);
+        clipboardPanelWrapper.setVisibility(GONE);
+        body.addView(clipboardPanelWrapper, matchParent());
 
         buildKeyboard();
         setMode(Mode.KEYS);
@@ -159,7 +162,7 @@ class KeyboardRootView extends LinearLayout implements
 
     private View scrollablePanel(View panel) {
         ScrollView scroll = new ScrollView(getContext());
-        scroll.setBackgroundColor(COLOR_PANEL);
+        scroll.setBackgroundColor(PanelUi.color(getContext(), R.color.panel));
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         scroll.addView(panel, new FrameLayout.LayoutParams(
@@ -170,12 +173,12 @@ class KeyboardRootView extends LinearLayout implements
     private LinearLayout createToolbar() {
         toolbar = new LinearLayout(getContext());
         toolbar.setOrientation(HORIZONTAL);
-        toolbar.setBackgroundColor(COLOR_TOOLBAR);
+        toolbar.setBackgroundColor(PanelUi.color(getContext(), R.color.window_bg));
         toolbar.setPadding(dp(6), 0, dp(6), 0);
 
         fontButton = addToolButton(toolbar, ToolButtonView.Icon.FONT, "Cambiar fuente");
         emojiButton = addToolButton(toolbar, ToolButtonView.Icon.EMOJI, "Abrir emojis");
-        clipboardButton = addToolButton(toolbar, ToolButtonView.Icon.CLIPBOARD, "Pegar portapapeles");
+        clipboardButton = addToolButton(toolbar, ToolButtonView.Icon.CLIPBOARD, "Abrir portapapeles");
         settingsButton = addToolButton(toolbar, ToolButtonView.Icon.SETTINGS, "Ajustes del teclado");
         moreButton = addToolButton(toolbar, ToolButtonView.Icon.MORE, "Más opciones");
 
@@ -189,11 +192,16 @@ class KeyboardRootView extends LinearLayout implements
         });
         clipboardButton.setOnClickListener(view -> {
             tap(view);
-            service.pasteClipboard();
+            toggleMode(Mode.CLIPBOARD);
         });
         settingsButton.setOnClickListener(view -> {
             tap(view);
             service.openSettings();
+        });
+        clipboardButton.setOnLongClickListener(view -> {
+            tap(view);
+            service.pasteClipboard(true);
+            return true;
         });
         moreButton.setOnClickListener(view -> {
             tap(view);
@@ -221,9 +229,13 @@ class KeyboardRootView extends LinearLayout implements
         fontPanelWrapper.setVisibility(mode == Mode.FONTS ? VISIBLE : GONE);
         emojiPanelWrapper.setVisibility(mode == Mode.EMOJI ? VISIBLE : GONE);
         morePanelWrapper.setVisibility(mode == Mode.MORE ? VISIBLE : GONE);
+        clipboardPanelWrapper.setVisibility(mode == Mode.CLIPBOARD ? VISIBLE : GONE);
 
         if (mode == Mode.FONTS) {
             fontPicker.setCurrentStyle(style);
+        } else if (mode == Mode.CLIPBOARD) {
+            clipboardPanel.refresh(service.readClipboard());
+            clipboardPanelWrapper.scrollTo(0, 0);
         } else if (mode == Mode.MORE) {
             morePanel.refresh(style, symbols);
         }
@@ -238,10 +250,12 @@ class KeyboardRootView extends LinearLayout implements
         fontButton.setActive(mode == Mode.FONTS || style != FontStyle.NORMAL);
         fontButton.setContentDescription("Cambiar fuente. Actual: " + style.getLabel());
         emojiButton.setActive(mode == Mode.EMOJI);
+        clipboardButton.setActive(mode == Mode.CLIPBOARD);
         moreButton.setActive(mode == Mode.MORE);
     }
 
-    void resetForNewInput() {
+    void resetForNewInput(android.view.inputmethod.EditorInfo info) {
+        editorAction = EditorAction.fromImeOptions(info == null ? 0 : info.imeOptions);
         style = service.getFontStyle();
         shift = false;
         capsLock = false;
@@ -314,7 +328,7 @@ class KeyboardRootView extends LinearLayout implements
         addKey(bottomRow, characterKey(",", "", 1f, KeyView.Appearance.NORMAL), 1f);
         addKey(bottomRow, spaceKey(), 5.2f);
         addKey(bottomRow, characterKey(".", "", 1f, KeyView.Appearance.NORMAL), 1f);
-        addKey(bottomRow, searchKey(), 1.35f);
+        addKey(bottomRow, editorActionKey(), 1.35f);
     }
 
     private void buildSymbolsLayout() {
@@ -349,7 +363,7 @@ class KeyboardRootView extends LinearLayout implements
         addKey(bottomRow, characterKey("<", "", 1f, KeyView.Appearance.NORMAL), 1f);
         addKey(bottomRow, spaceKey(), 5.2f);
         addKey(bottomRow, backspaceKey(), 1.35f);
-        addKey(bottomRow, searchKey(), 1.35f);
+        addKey(bottomRow, editorActionKey(), 1.35f);
     }
 
     private LinearLayout newRow() {
@@ -404,8 +418,9 @@ class KeyboardRootView extends LinearLayout implements
 
     private KeyView shiftKey() {
         KeyView key = new KeyView(getContext());
-        key.configure("", "", KeyView.Icon.SHIFT, KeyView.Appearance.SPECIAL,
-                shift || capsLock, "Mayúsculas. Mantén pulsada para bloquear");
+        key.configure("", "", capsLock ? KeyView.Icon.SHIFT_LOCK : KeyView.Icon.SHIFT, KeyView.Appearance.SPECIAL,
+                shift || capsLock, capsLock ? "Bloqueo de mayúsculas activado. Pulsa para desactivar"
+                        : "Mayúsculas. Mantén pulsado para bloquear");
         key.setActive(shift || capsLock);
         key.setOnClickListener(view -> {
             tap(view);
@@ -495,10 +510,10 @@ class KeyboardRootView extends LinearLayout implements
         return key;
     }
 
-    private KeyView searchKey() {
+    private KeyView editorActionKey() {
         KeyView key = new KeyView(getContext());
-        key.configure("", "", KeyView.Icon.SEARCH, KeyView.Appearance.SPECIAL,
-                false, "Buscar, enviar o aceptar");
+        key.configure("", "", editorAction.icon(), KeyView.Appearance.SPECIAL,
+                false, editorAction.description());
         key.setOnClickListener(view -> {
             tap(view);
             service.sendEnter();
@@ -516,7 +531,7 @@ class KeyboardRootView extends LinearLayout implements
     }
 
     private void tap(View view) {
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+        service.tap(view);
     }
 
     private FrameLayout.LayoutParams matchParent() {
@@ -535,7 +550,7 @@ class KeyboardRootView extends LinearLayout implements
 
     @Override
     public void onEmoji(String emoji) {
-        emojiPanel.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+        tap(emojiPanel);
         service.commitText(emoji);
     }
 
@@ -547,6 +562,42 @@ class KeyboardRootView extends LinearLayout implements
     @Override
     public void onOpenEmojis() {
         setMode(Mode.EMOJI);
+    }
+
+    @Override
+    public void onOpenClipboard() {
+        setMode(Mode.CLIPBOARD);
+    }
+
+    @Override
+    public void onPasteClipboard(boolean styled) {
+        if (service.pasteClipboard(styled)) {
+            setMode(Mode.KEYS);
+        } else {
+            clipboardPanel.refresh(null);
+        }
+    }
+
+    @Override
+    public void onCopySelection() {
+        service.copySelection();
+    }
+
+    @Override
+    public void onRefreshClipboard() {
+        clipboardPanel.refresh(service.readClipboard());
+    }
+
+    @Override
+    public void onDelete() {
+        tap(emojiPanel);
+        service.deleteBackward();
+    }
+
+    @Override
+    public void onHideKeyboard() {
+        setMode(Mode.KEYS);
+        service.hideKeyboard();
     }
 
     @Override

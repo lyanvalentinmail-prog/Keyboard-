@@ -60,6 +60,9 @@ jobs:
           fi
           echo "KEYBOARD_DEBUG_KEYSTORE=$KEYSTORE" >> "$GITHUB_ENV"
 
+      - name: Comprobar que los SVG y los vectores Android coinciden
+        run: python3 tools/sync_icons.py --check
+
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:

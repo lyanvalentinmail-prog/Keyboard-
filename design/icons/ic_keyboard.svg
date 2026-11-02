@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <title>keyboard</title>
+    <path d="M4,5H20a2,2 0 0,1 2,2V17a2,2 0 0,1 -2,2H4a2,2 0 0,1 -2,-2V7a2,2 0 0,1 2,-2Z" stroke="#F3F6FC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M6,9H6.1M10,9H10.1M14,9H14.1M18,9H18.1M6,12H6.1M10,12H10.1M14,12H14.1M18,12H18.1M7,15H17" stroke="#F3F6FC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

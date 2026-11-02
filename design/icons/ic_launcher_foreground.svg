@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" fill="none">
+    <title>launcher foreground</title>
+    <path d="M26,34H82a7,7 0 0,1 7,7V71a7,7 0 0,1 -7,7H26a7,7 0 0,1 -7,-7V41a7,7 0 0,1 7,-7Z" fill="#2A303B" />
+    <path d="M28,42H35V48H28ZM41,42H48V48H41ZM60,42H67V48H60ZM73,42H80V48H73ZM28,54H38V60H28ZM70,54H80V60H70ZM39,65H69V70H39Z" fill="#657187" />
+    <path d="M44,62L54,40L64,62M48,55H60" stroke="#8AB4FF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

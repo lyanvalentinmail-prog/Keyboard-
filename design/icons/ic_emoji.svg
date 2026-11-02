@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <title>emoji</title>
+    <path d="M21,12a9,9 0 1,0 -18,0a9,9 0 1,0 18,0Z" stroke="#F3F6FC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M7.5,14C9.5,17.5 14.5,17.5 16.5,14" stroke="#F3F6FC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M7.5,9a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0Z" fill="#F3F6FC" />
+    <path d="M14.5,9a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0Z" fill="#F3F6FC" />
+</svg>

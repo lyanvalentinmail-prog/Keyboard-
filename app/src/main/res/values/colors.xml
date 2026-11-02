@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="window_bg">#FF111111</color>
-    <color name="surface">#FF1E1E1E</color>
-    <color name="key">#FF303030</color>
-    <color name="input">#FF252525</color>
-    <color name="divider">#FF2A2A2A</color>
-    <color name="text_primary">#FFF5F5F5</color>
-    <color name="text_secondary">#FFAAAAAA</color>
-    <color name="accent">#FF4C8DFF</color>
-    <color name="warning">#FFFFB74D</color>
+    <color name="window_bg">#FF101318</color>
+    <color name="panel">#FF151920</color>
+    <color name="surface">#FF1B2029</color>
+    <color name="key">#FF2A303B</color>
+    <color name="key_pressed">#FF414E62</color>
+    <color name="space">#FF303A49</color>
+    <color name="selected">#FF243B5D</color>
+    <color name="input">#FF1B2029</color>
+    <color name="divider">#FF303846</color>
+    <color name="text_primary">#FFF3F6FC</color>
+    <color name="text_secondary">#FFABB6C8</color>
+    <color name="accent">#FF8AB4FF</color>
+    <color name="button_text">#FF0B1B33</color>
+    <color name="ripple">#338AB4FF</color>
+    <color name="warning">#FFFFCC80</color>
+    <color name="launcher_background">#FF101318</color>
 </resources>
