@@ -24,3 +24,7 @@ out/
 dist/
 .ci/
 google_drive/
+
+# Python tooling caches
+__pycache__/
+*.pyc
