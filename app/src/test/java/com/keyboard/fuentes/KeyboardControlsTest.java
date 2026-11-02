@@ -59,8 +59,11 @@ public class KeyboardControlsTest {
     @Before public void setUp() {
         Application application = RuntimeEnvironment.getApplication();
         application.setTheme(R.style.AppTheme);
-        service = Robolectric.buildService(TestKeyboardService.class).create().get();
+        org.robolectric.android.controller.ServiceController<TestKeyboardService> controller =
+                Robolectric.buildService(TestKeyboardService.class);
+        service = controller.get();
         service.setTheme(R.style.AppTheme);
+        controller.create();
         editor = new EditText(service);
         connection = new RecordingConnection(editor);
         service.connection = connection;

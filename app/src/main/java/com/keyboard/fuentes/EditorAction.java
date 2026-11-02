@@ -5,7 +5,7 @@ enum EditorAction {
     ENTER(1), GO(2), SEARCH(3), SEND(4), NEXT(5), DONE(6), PREVIOUS(7);
 
     static final int MASK_ACTION = 0xff;
-    static final int FLAG_NO_ENTER_ACTION = 0x10000000;
+    static final int FLAG_NO_ENTER_ACTION = 0x40000000;
 
     final int id;
 
