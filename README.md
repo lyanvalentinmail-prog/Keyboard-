@@ -13,7 +13,7 @@ El workflow [`Build Android APK`](.github/workflows/build-apk.yml) compila, prue
 
 Si se crea una etiqueta `v*` (por ejemplo `v1.0.0`), el mismo workflow publica además una **GitHub Release** con el APK como descarga directa y notas generadas automáticamente. También puedes ejecutarlo desde la terminal con `gh workflow run build-apk.yml --ref arena/a1cea532-keyboard`.
 
-> El APK se firma con la clave de depuración que genera Gradle para poder instalarlo sin configurar secretos. El workflow la conserva en la caché de Actions para mantener la misma firma entre ejecuciones. Para publicar en Google Play, configura una clave de lanzamiento propia. Si la caché se pierde y Android rechaza una actualización por firma distinta, desinstala la versión anterior antes de instalar la nueva.
+> El APK se firma con una clave de depuración de CI para poder instalarlo sin configurar secretos. El workflow la genera una sola vez en `.ci/keyboard-debug.keystore` y la conserva en la caché de Actions, de modo que la firma se mantiene entre ejecuciones. Esa carpeta está ignorada por Git. Para publicar en Google Play, configura una clave de lanzamiento propia. Si la caché se pierde y Android rechaza una actualización por firma distinta, desinstala la versión anterior antes de instalar la nueva.
 
 ## Activar el teclado
 

@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+def ciKeystorePath = System.getenv('KEYBOARD_DEBUG_KEYSTORE')
+def useCiKeystore = ciKeystorePath != null && !ciKeystorePath.trim().isEmpty()
+
 android {
     namespace 'com.keyboard.fuentes'
     compileSdk 34
@@ -14,12 +17,24 @@ android {
         versionName '1.0.0'
     }
 
+    signingConfigs {
+        // El workflow crea y conserva esta clave; en local se usa la debug por defecto.
+        ci {
+            storeFile file(useCiKeystore ? ciKeystorePath
+                    : "${System.getProperty('user.home')}/.android/debug.keystore")
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+            storeType 'PKCS12'
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
-            // APK instalable sin secretos: Gradle genera esta clave de depuración.
-            signingConfig signingConfigs.debug
+            // APK instalable sin secretos, firmado con una clave de depuración.
+            signingConfig(useCiKeystore ? signingConfigs.ci : signingConfigs.debug)
         }
     }
 

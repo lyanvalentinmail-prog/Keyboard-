@@ -41,8 +41,24 @@ jobs:
       - name: Conservar la clave de firma entre ejecuciones
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: ${{ runner.os }}-keyboard-debug-keystore-v1
+          path: .ci/keyboard-debug.keystore
+          key: ${{ runner.os }}-keyboard-debug-keystore-v2
+
+      - name: Crear clave de depuración estable si no existe
+        run: |
+          set -euo pipefail
+          mkdir -p .ci
+          KEYSTORE="$(pwd)/.ci/keyboard-debug.keystore"
+          if [ ! -f "$KEYSTORE" ]; then
+            keytool -genkeypair \
+              -keystore "$KEYSTORE" \
+              -storetype PKCS12 \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Android Debug, O=Android, C=US"
+          fi
+          echo "KEYBOARD_DEBUG_KEYSTORE=$KEYSTORE" >> "$GITHUB_ENV"
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4

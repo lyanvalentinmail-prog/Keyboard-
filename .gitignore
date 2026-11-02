@@ -20,6 +20,7 @@ out/
 *.iml
 .DS_Store
 
-# Generated distribution and connector scratch files
+# Generated distribution, CI signing key and connector scratch files
 dist/
+.ci/
 google_drive/
