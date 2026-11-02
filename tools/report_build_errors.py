@@ -10,6 +10,6 @@ selected = [line for line in lines if pattern.search(line) and not line.startswi
 if not selected:
     selected = [line for line in lines if pattern.search(line)]
 # GitHub keeps only ten failure annotations per job: prioritize actionable errors.
-for line in selected[:10]:
+for line in selected[-10:]:
     message = line.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
     print("::error title=Android build::" + message)

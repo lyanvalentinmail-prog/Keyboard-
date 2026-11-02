@@ -80,6 +80,18 @@ jobs:
           fi
           exit "$RESULT"
 
+      - name: Publicar informe de pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: KeyboardFuentes-TestReport
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
+            build.log
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Preparar archivos descargables
         run: |
           set -euo pipefail
