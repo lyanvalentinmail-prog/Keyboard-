@@ -51,7 +51,7 @@ final class TextEditing {
 
     private static boolean isExtending(int cp) {
         int type = Character.getType(cp);
-        return type == Character.NON_SPACING_MARK || type == Character.COMBINING_MARK
+        return type == Character.NON_SPACING_MARK || type == Character.COMBINING_SPACING_MARK
                 || type == Character.ENCLOSING_MARK
                 || (cp >= 0xfe00 && cp <= 0xfe0f)
                 || (cp >= 0x1f3fb && cp <= 0x1f3ff)
