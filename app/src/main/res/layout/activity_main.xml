@@ -64,10 +64,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:background="@drawable/bg_button"
-            android:minHeight="50dp"
+            android:minHeight="56dp"
+            android:gravity="center"
             android:text="@string/btn_enable"
             android:textAllCaps="false"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/button_text"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -76,8 +77,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:background="@drawable/bg_button"
-            android:minHeight="50dp"
+            android:background="@drawable/bg_button_secondary"
+            android:minHeight="56dp"
+            android:gravity="center"
             android:text="@string/btn_choose"
             android:textAllCaps="false"
             android:textColor="@color/text_primary"
@@ -89,8 +91,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:background="@drawable/bg_button"
-            android:minHeight="50dp"
+            android:background="@drawable/bg_button_secondary"
+            android:minHeight="56dp"
+            android:gravity="center"
             android:text="@string/btn_test"
             android:textAllCaps="false"
             android:textColor="@color/text_primary"
@@ -121,11 +124,38 @@
             android:textIsSelectable="true"
             android:textSize="18sp" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:labelFor="@id/testInput"
+                android:text="@string/test_label"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+            <Button
+                android:id="@+id/clearButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button_secondary"
+                android:minHeight="48dp"
+                android:text="@string/btn_clear"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
         <EditText
             android:id="@+id/testInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:background="@drawable/bg_input"
             android:focusable="true"
             android:focusableInTouchMode="true"
@@ -138,6 +168,50 @@
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_secondary"
             android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/copyButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_button_secondary"
+            android:minHeight="48dp"
+            android:text="@string/btn_copy_example"
+            android:textAllCaps="false"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="18dp">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/preferences_title"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <Switch
+                android:id="@+id/hapticsSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:minHeight="48dp"
+                android:text="@string/haptics_title"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/haptics_summary"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"

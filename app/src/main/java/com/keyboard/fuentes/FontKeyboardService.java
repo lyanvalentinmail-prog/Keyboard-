@@ -7,8 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.Color;
 import android.inputmethodservice.InputMethodService;
+import android.os.Build;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -16,7 +16,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.ExtractedText;
+import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
+import android.text.TextUtils;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
@@ -24,8 +27,7 @@ import android.widget.Toast;
 public class FontKeyboardService extends InputMethodService {
     public static final String PREFS_NAME = "keyboard_fuentes_prefs";
     public static final String KEY_FONT_STYLE = "font_style";
-
-    private static final int COLOR_WINDOW_BG = Color.parseColor("#111111");
+    public static final String KEY_HAPTICS = "haptics";
 
     private FontStyle style = FontStyle.NORMAL;
     private KeyboardRootView root;
@@ -41,7 +43,7 @@ public class FontKeyboardService extends InputMethodService {
     @Override
     public View onCreateInputView() {
         inputWrapper = new FrameLayout(this);
-        inputWrapper.setBackgroundColor(COLOR_WINDOW_BG);
+        inputWrapper.setBackgroundColor(PanelUi.color(this, R.color.window_bg));
         inputWrapper.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -57,7 +59,7 @@ public class FontKeyboardService extends InputMethodService {
         applyCompactBounds();
         updateFullscreenMode();
         if (root != null) {
-            root.resetForNewInput();
+            root.resetForNewInput(info);
         }
     }
 
@@ -99,6 +101,14 @@ public class FontKeyboardService extends InputMethodService {
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public void onFinishInputView(boolean finishingInput) {
+        if (root != null) {
+            root.stopRepeating();
+        }
+        super.onFinishInputView(finishingInput);
     }
 
     @Override
@@ -227,23 +237,54 @@ public class FontKeyboardService extends InputMethodService {
         if (connection == null) {
             return;
         }
-
-        CharSequence selected = connection.getSelectedText(0);
-        if (selected != null && selected.length() > 0) {
-            connection.commitText("", 1);
-            return;
-        }
-
-        int count = 1;
-        CharSequence before = connection.getTextBeforeCursor(2, 0);
-        if (before != null && before.length() >= 2) {
-            char high = before.charAt(before.length() - 2);
-            char low = before.charAt(before.length() - 1);
-            if (Character.isSurrogatePair(high, low)) {
-                count = 2;
+        connection.beginBatchEdit();
+        try {
+            CharSequence selected = connection.getSelectedText(0);
+            if (selected != null && selected.length() > 0) {
+                connection.commitText("", 1);
+                return;
             }
+            if (selected == null) {
+                ExtractedText extracted = connection.getExtractedText(new ExtractedTextRequest(), 0);
+                if (extracted != null && extracted.selectionStart >= 0
+                        && extracted.selectionEnd > extracted.selectionStart) {
+                    connection.commitText("", 1);
+                    return;
+                }
+            }
+            CharSequence before = connection.getTextBeforeCursor(128, 0);
+            int count = TextEditing.safeLength(before, graphemeLength(before));
+            if (count > 0) {
+                connection.deleteSurroundingText(count, 0);
+            }
+        } finally {
+            connection.endBatchEdit();
         }
-        connection.deleteSurroundingText(count, 0);
+    }
+
+    private int graphemeLength(CharSequence before) {
+        if (before == null || before.length() == 0) {
+            return 0;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            return IcuText.previousGraphemeLength(before);
+        }
+        return TextEditing.previousGraphemeLength(before);
+    }
+
+    /** Isolated so Android 6 never loads the API 24 ICU class. */
+    private static final class IcuText {
+        static int previousGraphemeLength(CharSequence text) {
+            android.icu.text.BreakIterator iterator = android.icu.text.BreakIterator.getCharacterInstance();
+            iterator.setText(text.toString());
+            int boundary = iterator.preceding(text.length());
+            return boundary < 0 ? text.length() : text.length() - boundary;
+        }
+    }
+
+    EditorAction editorAction() {
+        EditorInfo info = getCurrentInputEditorInfo();
+        return EditorAction.fromImeOptions(info == null ? EditorInfo.IME_ACTION_UNSPECIFIED : info.imeOptions);
     }
 
     void sendEnter() {
@@ -251,42 +292,77 @@ public class FontKeyboardService extends InputMethodService {
         if (connection == null) {
             return;
         }
-        EditorInfo info = getCurrentInputEditorInfo();
-        int action = info == null ? EditorInfo.IME_ACTION_NONE
-                : info.imeOptions & EditorInfo.IME_MASK_ACTION;
-        if (action == EditorInfo.IME_ACTION_NONE) {
+        EditorAction action = editorAction();
+        if (action == EditorAction.ENTER) {
             connection.commitText("\n", 1);
-        } else {
-            connection.performEditorAction(action);
+        } else if (!connection.performEditorAction(action.id)) {
+            // Do not lose the key press in editors that do not implement the action.
+            connection.commitText("\n", 1);
         }
     }
 
-    void pasteClipboard() {
-        ClipboardManager clipboard =
-                (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+    String readClipboard() {
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clipboard == null) {
+            return null;
+        }
+        try {
+            ClipData clip = clipboard.getPrimaryClip();
+            if (clip == null || clip.getItemCount() == 0) {
+                return null;
+            }
+            CharSequence text = clip.getItemAt(0).coerceToText(this);
+            return text == null ? null : text.toString();
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
+    boolean pasteClipboard(boolean styled) {
+        String text = readClipboard();
+        if (TextUtils.isEmpty(text)) {
+            toast("No hay texto accesible en el portapapeles");
+            return false;
+        }
+        if (styled) {
+            commitTyped(text);
+        } else {
+            commitText(text);
+        }
+        toast(styled ? "Pegado con fuente " + style.getLabel() : "Pegado sin cambiar el texto");
+        return true;
+    }
+
+    void copySelection() {
+        InputConnection connection = getCurrentInputConnection();
+        CharSequence selection = connection == null ? null : connection.getSelectedText(0);
+        if (selection == null || selection.length() == 0) {
+            toast("Selecciona texto en el campo antes de copiar");
+            return;
+        }
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         if (clipboard == null) {
             toast("Portapapeles no disponible");
             return;
         }
         try {
-            if (!clipboard.hasPrimaryClip()) {
-                toast("Portapapeles vacío");
-                return;
-            }
-            ClipData clip = clipboard.getPrimaryClip();
-            if (clip == null || clip.getItemCount() == 0) {
-                toast("Portapapeles vacío");
-                return;
-            }
-            CharSequence text = clip.getItemAt(0).coerceToText(this);
-            if (text == null || text.length() == 0) {
-                toast("Portapapeles vacío");
-                return;
-            }
-            commitTyped(text.toString());
-            toast("Pegado con fuente " + style.getLabel());
-        } catch (SecurityException exception) {
-            toast("Sin acceso al portapapeles");
+            clipboard.setPrimaryClip(ClipData.newPlainText("Texto seleccionado", selection));
+            toast("Texto copiado");
+        } catch (RuntimeException exception) {
+            toast("No se pudo copiar el texto");
+        }
+    }
+
+    void hideKeyboard() {
+        if (root != null) {
+            root.stopRepeating();
+        }
+        requestHideSelf(0);
+    }
+
+    void tap(View view) {
+        if (getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_HAPTICS, true)) {
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP);
         }
     }
 

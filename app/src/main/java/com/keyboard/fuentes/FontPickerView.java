@@ -1,136 +1,93 @@
 package com.keyboard.fuentes;
 
 import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Panel que sustituye a las teclas cuando se pulsa el botón Aa. */
+import java.util.EnumMap;
+import java.util.Map;
+
+/** Font selector with visible selection, checkmark and accessible touch targets. */
 class FontPickerView extends LinearLayout {
     interface Listener {
         void onStyleSelected(FontStyle style);
-
         void onClose();
     }
 
-    private static final int COLOR_PANEL = Color.parseColor("#141414");
-    private static final int COLOR_BUTTON = Color.parseColor("#303030");
-    private static final int COLOR_SELECTED = Color.parseColor("#263448");
-    private static final int COLOR_TEXT = Color.parseColor("#F5F5F5");
-    private static final int COLOR_HINT = Color.parseColor("#A0A0A0");
-    private static final int COLOR_ACCENT = Color.parseColor("#4C8DFF");
-
-    private final Listener listener;
+    private final Map<FontStyle, TextView> buttons = new EnumMap<>(FontStyle.class);
     private FontStyle current = FontStyle.NORMAL;
 
     FontPickerView(Context context, Listener listener) {
         super(context);
-        this.listener = listener;
         setOrientation(VERTICAL);
-        setBackgroundColor(COLOR_PANEL);
-        setPadding(dp(12), dp(10), dp(12), dp(10));
-        build();
+        setBackgroundColor(PanelUi.color(context, R.color.panel));
+        int padding = PanelUi.dp(context, 14);
+        setPadding(padding, PanelUi.dp(context, 10), padding, PanelUi.dp(context, 12));
+        addView(PanelUi.header(context, "Elige la fuente", "Cerrar selector de fuentes", listener::onClose));
+        addView(PanelUi.hint(context, "El estilo se aplica al texto nuevo. Los emojis y los signos se conservan."));
+        FontStyle[] styles = FontStyle.values();
+        for (int index = 0; index < styles.length; index += 2) {
+            LinearLayout row = new LinearLayout(context);
+            row.setOrientation(HORIZONTAL);
+            row.addView(styleButton(styles[index], listener), buttonParams());
+            if (index + 1 < styles.length) {
+                row.addView(styleButton(styles[index + 1], listener), buttonParams());
+            } else {
+                row.addView(new View(context), buttonParams());
+            }
+            addView(row, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
+                    LayoutParams.WRAP_CONTENT));
+        }
+        setCurrentStyle(current);
     }
 
     void setCurrentStyle(FontStyle style) {
         current = style == null ? FontStyle.NORMAL : style;
-        build();
-    }
-
-    private void build() {
-        removeAllViews();
-
-        LinearLayout header = new LinearLayout(getContext());
-        header.setOrientation(HORIZONTAL);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-
-        TextView title = new TextView(getContext());
-        title.setText("Elige la fuente");
-        title.setTextColor(COLOR_TEXT);
-        title.setTextSize(17);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-
-        TextView close = new TextView(getContext());
-        close.setText("✕");
-        close.setTextColor(COLOR_TEXT);
-        close.setTextSize(20);
-        close.setGravity(Gravity.CENTER);
-        close.setBackground(roundBackground(COLOR_BUTTON, false));
-        close.setClickable(true);
-        close.setFocusable(true);
-        close.setContentDescription("Cerrar selector de fuentes");
-        close.setOnClickListener(view -> listener.onClose());
-
-        header.addView(title, new LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
-        header.addView(close, new LinearLayout.LayoutParams(dp(40), dp(40)));
-        addView(header, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-
-        TextView hint = new TextView(getContext());
-        hint.setText("Se insertan caracteres Unicode compatibles con cualquier app que los muestre.");
-        hint.setTextColor(COLOR_HINT);
-        hint.setTextSize(12);
-        hint.setPadding(0, dp(6), 0, dp(6));
-        addView(hint, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-
-        LinearLayout grid = new LinearLayout(getContext());
-        grid.setOrientation(VERTICAL);
-        addView(grid, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-
-        FontStyle[] styles = FontStyle.values();
-        for (int index = 0; index < styles.length; index += 2) {
-            LinearLayout row = new LinearLayout(getContext());
-            row.setOrientation(HORIZONTAL);
-            LinearLayout.LayoutParams rowParams =
-                    new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(50));
-            rowParams.setMargins(0, dp(2), 0, dp(2));
-            grid.addView(row, rowParams);
-
-            row.addView(styleButton(styles[index]), buttonParams(dp(3)));
-            if (index + 1 < styles.length) {
-                row.addView(styleButton(styles[index + 1]), buttonParams(dp(3)));
-            } else {
-                row.addView(new TextView(getContext()), buttonParams(dp(3)));
+        for (Map.Entry<FontStyle, TextView> entry : buttons.entrySet()) {
+            boolean selected = entry.getKey() == current;
+            TextView button = entry.getValue();
+            button.setSelected(selected);
+            button.setBackground(PanelUi.background(getContext(), PanelUi.color(getContext(),
+                    selected ? R.color.selected : R.color.key), selected));
+            Drawable check = selected ? PanelUi.icon(getContext(), R.drawable.ic_check,
+                    PanelUi.color(getContext(), R.color.accent)) : null;
+            if (check != null) {
+                int size = PanelUi.dp(getContext(), 18);
+                check.setBounds(0, 0, size, size);
             }
+            button.setCompoundDrawables(null, null, check, null);
+            button.setContentDescription("Usar fuente " + entry.getKey().getLabel()
+                    + (selected ? ", seleccionada" : ""));
         }
     }
 
-    private TextView styleButton(FontStyle style) {
+    private TextView styleButton(FontStyle style, Listener listener) {
         TextView button = new TextView(getContext());
-        boolean selected = style == current;
         button.setText(style.getLabel() + "\n" + style.preview());
-        button.setTextColor(COLOR_TEXT);
+        button.setTextColor(PanelUi.color(getContext(), R.color.text_primary));
         button.setTextSize(14);
-        button.setGravity(Gravity.CENTER);
-        button.setLineSpacing(dp(1), 1f);
-        button.setPadding(dp(8), dp(4), dp(8), dp(4));
-        button.setBackground(roundBackground(selected ? COLOR_SELECTED : COLOR_BUTTON, selected));
-        button.setClickable(true);
+        button.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+        button.setGravity(Gravity.CENTER_VERTICAL);
+        button.setMinHeight(PanelUi.dp(getContext(), 62));
+        button.setPadding(PanelUi.dp(getContext(), 12), PanelUi.dp(getContext(), 8),
+                PanelUi.dp(getContext(), 10), PanelUi.dp(getContext(), 8));
+        button.setCompoundDrawablePadding(PanelUi.dp(getContext(), 4));
+        button.setLineSpacing(PanelUi.dp(getContext(), 3), 1f);
         button.setFocusable(true);
-        button.setContentDescription("Usar fuente " + style.getLabel());
         button.setOnClickListener(view -> listener.onStyleSelected(style));
+        buttons.put(style, button);
         return button;
     }
 
-    private LinearLayout.LayoutParams buttonParams(int margin) {
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f);
-        params.setMargins(margin, 0, margin, 0);
+    private LinearLayout.LayoutParams buttonParams() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0,
+                LayoutParams.WRAP_CONTENT, 1f);
+        int margin = PanelUi.dp(getContext(), 3);
+        params.setMargins(margin, margin, margin, margin);
         return params;
-    }
-
-    private GradientDrawable roundBackground(int color, boolean selected) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setCornerRadius(dp(10));
-        drawable.setColor(color);
-        if (selected) {
-            drawable.setStroke((int) dp(2), COLOR_ACCENT);
-        }
-        return drawable;
-    }
-
-    private int dp(float value) {
-        return (int) (value * getResources().getDisplayMetrics().density);
     }
 }

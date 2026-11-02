@@ -2,45 +2,41 @@ package com.keyboard.fuentes;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 
-/** Tecla redondeada dibujada a medida, con símbolo secundario e iconos vectoriales. */
+/** Rounded key whose special symbols are the same SVGs used throughout the app. */
 class KeyView extends View {
     enum Icon {
-        NONE, SHIFT, BACKSPACE, SEARCH
+        NONE(0), SHIFT(R.drawable.ic_shift), SHIFT_LOCK(R.drawable.ic_shift_lock),
+        BACKSPACE(R.drawable.ic_backspace), ENTER(R.drawable.ic_enter),
+        SEARCH(R.drawable.ic_search), SEND(R.drawable.ic_send), DONE(R.drawable.ic_done),
+        NEXT(R.drawable.ic_next), PREVIOUS(R.drawable.ic_previous), GO(R.drawable.ic_go);
+
+        final int resource;
+        Icon(int resource) { this.resource = resource; }
+        boolean isAction() { return this == ENTER || this == SEARCH || this == SEND
+                || this == DONE || this == NEXT || this == PREVIOUS || this == GO; }
     }
 
-    enum Appearance {
-        NORMAL, SPECIAL, SPACE
-    }
-
-    private static final int COLOR_NORMAL = Color.parseColor("#303030");
-    private static final int COLOR_SPECIAL = Color.parseColor("#252525");
-    private static final int COLOR_SPACE = Color.parseColor("#343434");
-    private static final int COLOR_PRESSED = Color.parseColor("#454545");
-    private static final int COLOR_ACTIVE = Color.parseColor("#2C3F5C");
-    private static final int COLOR_PRIMARY = Color.parseColor("#F5F5F5");
-    private static final int COLOR_SECONDARY = Color.parseColor("#A0A0A0");
-    private static final int COLOR_ACCENT = Color.parseColor("#4C8DFF");
+    enum Appearance { NORMAL, SPECIAL, SPACE }
 
     private String primary = "";
     private String secondary = "";
     private Icon icon = Icon.NONE;
+    private Drawable iconDrawable;
     private Appearance appearance = Appearance.NORMAL;
-    private boolean active = false;
-    private float cornerRadius;
+    private boolean active;
 
     private final RectF keyRect = new RectF();
     private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint primaryPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint secondaryPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     public KeyView(Context context) {
         super(context);
@@ -53,20 +49,12 @@ class KeyView extends View {
     }
 
     private void init() {
-        cornerRadius = dp(8);
-        primaryPaint.setColor(COLOR_PRIMARY);
+        primaryPaint.setColor(PanelUi.color(getContext(), R.color.text_primary));
         primaryPaint.setTextAlign(Paint.Align.CENTER);
         primaryPaint.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-
-        secondaryPaint.setColor(COLOR_SECONDARY);
+        secondaryPaint.setColor(PanelUi.color(getContext(), R.color.text_secondary));
         secondaryPaint.setTextAlign(Paint.Align.RIGHT);
         secondaryPaint.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-
-        iconPaint.setColor(COLOR_PRIMARY);
-        iconPaint.setStyle(Paint.Style.STROKE);
-        iconPaint.setStrokeCap(Paint.Cap.ROUND);
-        iconPaint.setStrokeJoin(Paint.Join.ROUND);
-
         setClickable(true);
         setLongClickable(true);
         setFocusable(true);
@@ -77,152 +65,86 @@ class KeyView extends View {
                    boolean active, String description) {
         this.primary = primary == null ? "" : primary;
         this.secondary = secondary == null ? "" : secondary;
-        this.icon = icon == null ? Icon.NONE : icon;
         this.appearance = appearance == null ? Appearance.NORMAL : appearance;
-        this.active = active;
+        setIcon(icon);
+        setActive(active);
         setContentDescription(description == null ? this.primary : description);
         invalidate();
     }
 
-    void setActive(boolean active) {
-        if (this.active != active) {
-            this.active = active;
-            invalidate();
+    void setIcon(Icon value) {
+        Icon next = value == null ? Icon.NONE : value;
+        if (icon != next || (next != Icon.NONE && iconDrawable == null)) {
+            icon = next;
+            iconDrawable = next == Icon.NONE ? null : PanelUi.icon(getContext(), next.resource,
+                    PanelUi.color(getContext(), next.isAction() || active ? R.color.accent : R.color.text_primary));
         }
+        invalidate();
+    }
+
+    void setActive(boolean active) {
+        this.active = active;
+        setSelected(active);
+        if (iconDrawable != null) {
+            iconDrawable.setTint(PanelUi.color(getContext(),
+                    active || icon.isAction() ? R.color.accent : R.color.text_primary));
+        }
+        invalidate();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         float width = getWidth();
         float height = getHeight();
         float inset = dp(0.5f);
         keyRect.set(inset, inset, width - inset, height - inset);
+        backgroundPaint.setStyle(Paint.Style.FILL);
         backgroundPaint.setColor(backgroundColor());
-        float radius = Math.min(cornerRadius, Math.min(width, height) * 0.18f);
+        float radius = Math.min(dp(9), Math.min(width, height) * 0.2f);
         canvas.drawRoundRect(keyRect, radius, radius, backgroundPaint);
-
-        if (icon != Icon.NONE) {
-            drawIcon(canvas, width, height);
+        if (isFocused()) {
+            backgroundPaint.setStyle(Paint.Style.STROKE);
+            backgroundPaint.setStrokeWidth(dp(1.5f));
+            backgroundPaint.setColor(PanelUi.color(getContext(), R.color.accent));
+            canvas.drawRoundRect(keyRect, radius, radius, backgroundPaint);
+        }
+        if (iconDrawable != null) {
+            float size = Math.min(dp(24), Math.min(width * 0.6f, height * 0.56f));
+            int left = Math.round((width - size) / 2f);
+            int top = Math.round((height - size) / 2f);
+            iconDrawable.setBounds(left, top, Math.round(left + size), Math.round(top + size));
+            iconDrawable.draw(canvas);
             return;
         }
-
-        primaryPaint.setTextSize(primaryTextSize());
+        float textSize = primaryTextSize();
+        primaryPaint.setTextSize(textSize);
+        float available = Math.max(1, width - dp(8));
+        while (textSize > sp(9) && primaryPaint.measureText(primary) > available) {
+            primaryPaint.setTextSize(--textSize);
+        }
         Paint.FontMetrics metrics = primaryPaint.getFontMetrics();
-        float baseline = height / 2f - (metrics.ascent + metrics.descent) / 2f;
-        canvas.drawText(primary, width / 2f, baseline, primaryPaint);
-
+        canvas.drawText(primary, width / 2f,
+                height / 2f - (metrics.ascent + metrics.descent) / 2f, primaryPaint);
         if (!secondary.isEmpty()) {
-            float secondarySize = Math.min(sp(12), height * 0.22f);
-            secondaryPaint.setTextSize(secondarySize);
-            float top = Math.min(dp(6), height * 0.12f);
-            canvas.drawText(secondary, width - dp(7), top - secondaryPaint.ascent(), secondaryPaint);
+            secondaryPaint.setTextSize(Math.min(sp(11), Math.min(height * 0.22f, width * 0.28f)));
+            float top = Math.min(dp(5), height * 0.1f);
+            canvas.drawText(secondary, width - dp(5), top - secondaryPaint.ascent(), secondaryPaint);
         }
     }
 
     private int backgroundColor() {
-        if (isPressed()) {
-            return COLOR_PRESSED;
-        }
-        if (active) {
-            return COLOR_ACTIVE;
-        }
-        switch (appearance) {
-            case SPECIAL:
-                return COLOR_SPECIAL;
-            case SPACE:
-                return COLOR_SPACE;
-            case NORMAL:
-            default:
-                return COLOR_NORMAL;
-        }
+        int resource = isPressed() ? R.color.key_pressed
+                : active ? R.color.selected
+                : appearance == Appearance.SPECIAL ? R.color.surface
+                : appearance == Appearance.SPACE ? R.color.space : R.color.key;
+        return PanelUi.color(getContext(), resource);
     }
 
     private float primaryTextSize() {
-        float desired;
-        if (appearance == Appearance.SPACE || primary.length() > 3) {
-            desired = sp(17);
-        } else if (primary.length() > 1) {
-            desired = sp(20);
-        } else {
-            desired = sp(26);
-        }
+        float desired = appearance == Appearance.SPACE || primary.length() > 3 ? sp(16)
+                : primary.length() > 1 ? sp(19) : sp(25);
         return Math.min(desired, Math.max(sp(10), getHeight() * 0.46f));
-    }
-
-    private void drawIcon(Canvas canvas, float width, float height) {
-        int color = COLOR_PRIMARY;
-        if (icon == Icon.SEARCH) {
-            color = COLOR_ACCENT;
-        } else if (active && icon == Icon.SHIFT) {
-            color = COLOR_ACCENT;
-        }
-        iconPaint.setColor(color);
-        iconPaint.setStyle(Paint.Style.STROKE);
-        iconPaint.setStrokeWidth(dp(2.4f));
-        iconPaint.setStrokeCap(Paint.Cap.ROUND);
-        iconPaint.setStrokeJoin(Paint.Join.ROUND);
-
-        switch (icon) {
-            case SHIFT:
-                drawShift(canvas, width, height);
-                break;
-            case BACKSPACE:
-                drawBackspace(canvas, width, height);
-                break;
-            case SEARCH:
-                drawSearch(canvas, width, height);
-                break;
-            case NONE:
-            default:
-                break;
-        }
-    }
-
-    private void drawShift(Canvas canvas, float width, float height) {
-        Path arrow = new Path();
-        float center = width / 2f;
-        float top = height * 0.23f;
-        float shoulder = height * 0.48f;
-        float bottom = height * 0.75f;
-        arrow.moveTo(center, top);
-        arrow.lineTo(width * 0.29f, shoulder);
-        arrow.lineTo(width * 0.40f, shoulder);
-        arrow.lineTo(width * 0.40f, bottom);
-        arrow.lineTo(width * 0.60f, bottom);
-        arrow.lineTo(width * 0.60f, shoulder);
-        arrow.lineTo(width * 0.71f, shoulder);
-        arrow.close();
-        canvas.drawPath(arrow, iconPaint);
-
-        if (active) {
-            iconPaint.setStyle(Paint.Style.FILL);
-            canvas.drawRect(width * 0.40f, height * 0.80f, width * 0.60f, height * 0.84f, iconPaint);
-        }
-    }
-
-    private void drawBackspace(Canvas canvas, float width, float height) {
-        Path outline = new Path();
-        outline.moveTo(width * 0.28f, height * 0.32f);
-        outline.lineTo(width * 0.78f, height * 0.32f);
-        outline.lineTo(width * 0.88f, height * 0.50f);
-        outline.lineTo(width * 0.78f, height * 0.68f);
-        outline.lineTo(width * 0.28f, height * 0.68f);
-        outline.lineTo(width * 0.18f, height * 0.50f);
-        outline.close();
-        canvas.drawPath(outline, iconPaint);
-        canvas.drawLine(width * 0.47f, height * 0.42f, width * 0.69f, height * 0.60f, iconPaint);
-        canvas.drawLine(width * 0.69f, height * 0.42f, width * 0.47f, height * 0.60f, iconPaint);
-    }
-
-    private void drawSearch(Canvas canvas, float width, float height) {
-        float radius = Math.min(width, height) * 0.16f;
-        float centerX = width * 0.45f;
-        float centerY = height * 0.44f;
-        canvas.drawCircle(centerX, centerY, radius, iconPaint);
-        canvas.drawLine(centerX + radius * 0.72f, centerY + radius * 0.72f,
-                width * 0.70f, height * 0.69f, iconPaint);
     }
 
     @Override
@@ -235,6 +157,13 @@ class KeyView extends View {
     protected void drawableStateChanged() {
         super.drawableStateChanged();
         invalidate();
+    }
+
+    @Override
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        info.setClassName("android.widget.Button");
+        info.setSelected(active);
     }
 
     private float dp(float value) {

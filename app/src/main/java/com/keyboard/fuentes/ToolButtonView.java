@@ -2,193 +2,91 @@ package com.keyboard.fuentes;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.RectF;
-import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 
-/** Botón circular de la barra superior, con iconos dibujados sin dependencias externas. */
+/** Accessible circular toolbar button backed by a tintable SVG vector. */
 class ToolButtonView extends View {
     enum Icon {
-        FONT, EMOJI, CLIPBOARD, SETTINGS, MORE
+        FONT(R.drawable.ic_font), EMOJI(R.drawable.ic_emoji),
+        CLIPBOARD(R.drawable.ic_clipboard), SETTINGS(R.drawable.ic_settings),
+        MORE(R.drawable.ic_more);
+        final int resource;
+        Icon(int resource) { this.resource = resource; }
     }
 
-    private static final int COLOR_CIRCLE = Color.parseColor("#2B2B2B");
-    private static final int COLOR_CIRCLE_PRESSED = Color.parseColor("#3B3B3B");
-    private static final int COLOR_CIRCLE_ACTIVE = Color.parseColor("#263448");
-    private static final int COLOR_ICON = Color.parseColor("#F0F0F0");
-    private static final int COLOR_ACCENT = Color.parseColor("#4C8DFF");
-
-    private Icon icon;
-    private boolean active = false;
-
-    private final RectF shape = new RectF();
+    private Icon icon = Icon.FONT;
+    private Drawable iconDrawable;
+    private boolean active;
     private final Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     public ToolButtonView(Context context, Icon icon) {
         super(context);
-        this.icon = icon;
         init();
+        configure(icon, null);
     }
 
     public ToolButtonView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        this.icon = Icon.FONT;
         init();
+        configure(Icon.FONT, null);
     }
 
     private void init() {
-        iconPaint.setColor(COLOR_ICON);
-        iconPaint.setStyle(Paint.Style.STROKE);
-        iconPaint.setStrokeWidth(dp(1.8f));
-        iconPaint.setStrokeCap(Paint.Cap.ROUND);
-        iconPaint.setStrokeJoin(Paint.Join.ROUND);
-
-        textPaint.setColor(COLOR_ICON);
-        textPaint.setTextAlign(Paint.Align.CENTER);
-        textPaint.setTextSize(sp(16));
-        textPaint.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-
-        dotPaint.setColor(COLOR_ACCENT);
-        dotPaint.setStyle(Paint.Style.FILL);
-
         setClickable(true);
         setFocusable(true);
         setHapticFeedbackEnabled(true);
     }
 
-    void configure(Icon icon, String description) {
-        this.icon = icon == null ? Icon.FONT : icon;
-        setContentDescription(description);
+    void configure(Icon value, String description) {
+        icon = value == null ? Icon.FONT : value;
+        iconDrawable = PanelUi.icon(getContext(), icon.resource,
+                PanelUi.color(getContext(), R.color.text_primary));
+        if (description != null) {
+            setContentDescription(description);
+            PanelUi.tooltip(this, description);
+        }
         invalidate();
     }
 
-    void setActive(boolean active) {
-        if (this.active != active) {
-            this.active = active;
-            invalidate();
+    void setActive(boolean value) {
+        active = value;
+        setSelected(value);
+        if (iconDrawable != null) {
+            iconDrawable.setTint(PanelUi.color(getContext(), active ? R.color.accent : R.color.text_primary));
         }
+        invalidate();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         float centerX = getWidth() / 2f;
         float centerY = getHeight() / 2f;
-        float radius = Math.min(Math.min(getWidth(), getHeight()) * 0.36f, dp(20));
-        float scale = radius * 0.58f;
-
-        circlePaint.setColor(isPressed() ? COLOR_CIRCLE_PRESSED
-                : active ? COLOR_CIRCLE_ACTIVE : COLOR_CIRCLE);
+        float radius = Math.min(Math.min(getWidth(), getHeight()) * 0.46f, dp(22));
+        circlePaint.setStyle(Paint.Style.FILL);
+        circlePaint.setColor(PanelUi.color(getContext(), isPressed() ? R.color.key_pressed
+                : active ? R.color.selected : R.color.key));
         canvas.drawCircle(centerX, centerY, radius, circlePaint);
-
-        iconPaint.setColor(COLOR_ICON);
-        iconPaint.setStyle(Paint.Style.STROKE);
-        iconPaint.setStrokeWidth(dp(1.8f));
-        iconPaint.setStrokeCap(Paint.Cap.ROUND);
-        iconPaint.setStrokeJoin(Paint.Join.ROUND);
-
-        if (icon == Icon.FONT) {
-            textPaint.setTextSize(Math.min(sp(16), Math.max(sp(9), getHeight() * 0.42f)));
+        if (isFocused()) {
+            circlePaint.setStyle(Paint.Style.STROKE);
+            circlePaint.setStrokeWidth(dp(1.5f));
+            circlePaint.setColor(PanelUi.color(getContext(), R.color.accent));
+            canvas.drawCircle(centerX, centerY, radius - dp(1), circlePaint);
         }
-
-        switch (icon) {
-            case FONT:
-                drawFont(canvas, centerX, centerY);
-                break;
-            case EMOJI:
-                drawEmoji(canvas, centerX, centerY, scale);
-                break;
-            case CLIPBOARD:
-                drawClipboard(canvas, centerX, centerY, scale);
-                break;
-            case SETTINGS:
-                drawSettings(canvas, centerX, centerY, scale);
-                break;
-            case MORE:
-            default:
-                drawMore(canvas, centerX, centerY, scale);
-                break;
-        }
-
+        float size = Math.min(dp(22), radius * 1.15f);
+        int left = Math.round(centerX - size / 2f);
+        int top = Math.round(centerY - size / 2f);
+        iconDrawable.setBounds(left, top, Math.round(left + size), Math.round(top + size));
+        iconDrawable.draw(canvas);
         if (active) {
-            canvas.drawCircle(centerX + radius * 0.62f, centerY + radius * 0.62f, dp(2.6f), dotPaint);
+            circlePaint.setStyle(Paint.Style.FILL);
+            circlePaint.setColor(PanelUi.color(getContext(), R.color.accent));
+            canvas.drawCircle(centerX, centerY + radius - dp(3), dp(1.5f), circlePaint);
         }
-    }
-
-    private void drawFont(Canvas canvas, float centerX, float centerY) {
-        Paint.FontMetrics metrics = textPaint.getFontMetrics();
-        float baseline = centerY - (metrics.ascent + metrics.descent) / 2f;
-        canvas.drawText("Aa", centerX, baseline, textPaint);
-    }
-
-    private void drawEmoji(Canvas canvas, float centerX, float centerY, float scale) {
-        canvas.drawCircle(centerX, centerY, scale * 0.88f, iconPaint);
-
-        iconPaint.setStyle(Paint.Style.FILL);
-        canvas.drawCircle(centerX - scale * 0.34f, centerY - scale * 0.22f, dp(1.7f), iconPaint);
-        canvas.drawCircle(centerX + scale * 0.34f, centerY - scale * 0.22f, dp(1.7f), iconPaint);
-        iconPaint.setStyle(Paint.Style.STROKE);
-
-        shape.set(centerX - scale * 0.48f, centerY - scale * 0.14f,
-                centerX + scale * 0.48f, centerY + scale * 0.66f);
-        canvas.drawArc(shape, 20f, 140f, false, iconPaint);
-    }
-
-    private void drawClipboard(Canvas canvas, float centerX, float centerY, float scale) {
-        shape.set(centerX - scale * 0.62f, centerY - scale * 0.72f,
-                centerX + scale * 0.62f, centerY + scale * 0.82f);
-        canvas.drawRoundRect(shape, dp(2), dp(2), iconPaint);
-
-        iconPaint.setStyle(Paint.Style.FILL);
-        shape.set(centerX - scale * 0.28f, centerY - scale * 0.88f,
-                centerX + scale * 0.28f, centerY - scale * 0.58f);
-        canvas.drawRoundRect(shape, dp(1.5f), dp(1.5f), iconPaint);
-    }
-
-    private void drawSettings(Canvas canvas, float centerX, float centerY, float scale) {
-        Path gear = new Path();
-        int teeth = 8;
-        double step = Math.PI * 2 / teeth;
-        float outer = scale * 0.98f;
-        float inner = scale * 0.66f;
-
-        for (int i = 0; i < teeth; i++) {
-            double start = -Math.PI / 2 + i * step;
-            addPoint(gear, centerX, centerY, inner, start, i == 0);
-            addPoint(gear, centerX, centerY, outer, start + step * 0.22, false);
-            addPoint(gear, centerX, centerY, outer, start + step * 0.72, false);
-            addPoint(gear, centerX, centerY, inner, start + step * 0.94, false);
-        }
-        gear.close();
-        canvas.drawPath(gear, iconPaint);
-        canvas.drawCircle(centerX, centerY, scale * 0.30f, iconPaint);
-    }
-
-    private void addPoint(Path path, float centerX, float centerY, float radius,
-                          double angle, boolean moveTo) {
-        float x = (float) (centerX + Math.cos(angle) * radius);
-        float y = (float) (centerY + Math.sin(angle) * radius);
-        if (moveTo) {
-            path.moveTo(x, y);
-        } else {
-            path.lineTo(x, y);
-        }
-    }
-
-    private void drawMore(Canvas canvas, float centerX, float centerY, float scale) {
-        iconPaint.setStyle(Paint.Style.FILL);
-        float dotRadius = dp(2.2f);
-        canvas.drawCircle(centerX - scale * 0.62f, centerY, dotRadius, iconPaint);
-        canvas.drawCircle(centerX, centerY, dotRadius, iconPaint);
-        canvas.drawCircle(centerX + scale * 0.62f, centerY, dotRadius, iconPaint);
     }
 
     @Override
@@ -203,11 +101,14 @@ class ToolButtonView extends View {
         invalidate();
     }
 
-    private float dp(float value) {
-        return value * getResources().getDisplayMetrics().density;
+    @Override
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        info.setClassName("android.widget.Button");
+        info.setSelected(active);
     }
 
-    private float sp(float value) {
-        return value * getResources().getDisplayMetrics().scaledDensity;
+    private float dp(float value) {
+        return value * getResources().getDisplayMetrics().density;
     }
 }

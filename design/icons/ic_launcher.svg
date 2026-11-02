@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" fill="none">
+    <title>launcher</title>
+    <path d="M20,0H88a20,20 0 0,1 20,20V88a20,20 0 0,1 -20,20H20a20,20 0 0,1 -20,-20V20a20,20 0 0,1 20,-20Z" fill="#101318" />
+    <path d="M22,27H86a9,9 0 0,1 9,9V76a9,9 0 0,1 -9,9H22a9,9 0 0,1 -9,-9V36a9,9 0 0,1 9,-9Z" fill="#2A303B" />
+    <path d="M23,37H31V45H23ZM39,37H47V45H39ZM55,37H63V45H55ZM71,37H85V45H71ZM23,53H35V61H23ZM73,53H85V61H73ZM35,70H73V76H35Z" fill="#657187" />
+    <path d="M43,63L54,39L65,63M47,55H61" stroke="#8AB4FF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
