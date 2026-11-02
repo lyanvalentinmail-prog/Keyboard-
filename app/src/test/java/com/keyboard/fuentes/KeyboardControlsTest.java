@@ -67,7 +67,7 @@ public class KeyboardControlsTest {
         service.getSharedPreferences(FontKeyboardService.PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().clear().commit();
         service.setFontStyle(FontStyle.NORMAL);
-        root = new KeyboardRootView(service);
+        root = new KeyboardRootView(service, service);
     }
 
     @Test public void toolbarOpensAndClosesEveryPanel() {
