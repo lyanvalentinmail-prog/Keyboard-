@@ -31,6 +31,7 @@ Un teclado de Android no puede imponer una tipografía dentro de otra aplicació
 ## Diseño y controles
 
 - Barra superior oscura con cinco botones circulares: **Aa**, emojis, portapapeles, ajustes y más opciones.
+- Vista compacta anclada abajo: ancho máximo de 560dp, alto máximo del 58% de la pantalla y 292dp en móviles normales. No entra en modo pantalla completa; las filas se reparten solo ese alto y los paneles se desplazan si hace falta.
 - Fila numérica `1–0` y cuatro filas QWERTY con teclas redondeadas grises.
 - Mantén pulsada una tecla para insertar el símbolo pequeño de su esquina superior derecha (`+`, `@`, `#`, `$`, etc.).
 - `⇧` alterna mayúsculas; una pulsación larga activa o desactiva bloqueo de mayúsculas.
@@ -62,6 +63,7 @@ app/src/main/java/com/keyboard/fuentes/
 ├── MorePanelView.java         # Panel de opciones adicionales
 ├── FontStyle.java             # Transformación de texto a estilos Unicode
 ├── FontAlphabets.java         # Alfabetos y dígitos Unicode
+├── KeyboardBounds.java        # Límites compactos de ancho y alto
 └── MainActivity.java          # Activación, prueba e instrucciones
 ```
 

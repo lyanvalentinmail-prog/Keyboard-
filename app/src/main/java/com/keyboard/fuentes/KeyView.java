@@ -100,7 +100,8 @@ class KeyView extends View {
         float inset = dp(0.5f);
         keyRect.set(inset, inset, width - inset, height - inset);
         backgroundPaint.setColor(backgroundColor());
-        canvas.drawRoundRect(keyRect, cornerRadius, cornerRadius, backgroundPaint);
+        float radius = Math.min(cornerRadius, Math.min(width, height) * 0.18f);
+        canvas.drawRoundRect(keyRect, radius, radius, backgroundPaint);
 
         if (icon != Icon.NONE) {
             drawIcon(canvas, width, height);
@@ -113,8 +114,9 @@ class KeyView extends View {
         canvas.drawText(primary, width / 2f, baseline, primaryPaint);
 
         if (!secondary.isEmpty()) {
-            secondaryPaint.setTextSize(sp(12));
-            float top = dp(6);
+            float secondarySize = Math.min(sp(12), height * 0.22f);
+            secondaryPaint.setTextSize(secondarySize);
+            float top = Math.min(dp(6), height * 0.12f);
             canvas.drawText(secondary, width - dp(7), top - secondaryPaint.ascent(), secondaryPaint);
         }
     }
@@ -138,13 +140,15 @@ class KeyView extends View {
     }
 
     private float primaryTextSize() {
+        float desired;
         if (appearance == Appearance.SPACE || primary.length() > 3) {
-            return sp(17);
+            desired = sp(17);
+        } else if (primary.length() > 1) {
+            desired = sp(20);
+        } else {
+            desired = sp(26);
         }
-        if (primary.length() > 1) {
-            return sp(20);
-        }
-        return sp(26);
+        return Math.min(desired, Math.max(sp(10), getHeight() * 0.46f));
     }
 
     private void drawIcon(Canvas canvas, float width, float height) {

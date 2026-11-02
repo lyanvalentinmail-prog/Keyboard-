@@ -71,20 +71,20 @@ class FontPickerView extends LinearLayout {
         hint.setText("Se insertan caracteres Unicode compatibles con cualquier app que los muestre.");
         hint.setTextColor(COLOR_HINT);
         hint.setTextSize(12);
-        hint.setPadding(0, dp(8), 0, dp(8));
+        hint.setPadding(0, dp(6), 0, dp(6));
         addView(hint, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
         LinearLayout grid = new LinearLayout(getContext());
         grid.setOrientation(VERTICAL);
-        addView(grid, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f));
+        addView(grid, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
         FontStyle[] styles = FontStyle.values();
         for (int index = 0; index < styles.length; index += 2) {
             LinearLayout row = new LinearLayout(getContext());
             row.setOrientation(HORIZONTAL);
             LinearLayout.LayoutParams rowParams =
-                    new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f);
-            rowParams.setMargins(0, dp(3), 0, dp(3));
+                    new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(50));
+            rowParams.setMargins(0, dp(2), 0, dp(2));
             grid.addView(row, rowParams);
 
             row.addView(styleButton(styles[index]), buttonParams(dp(3)));
@@ -103,8 +103,8 @@ class FontPickerView extends LinearLayout {
         button.setTextColor(COLOR_TEXT);
         button.setTextSize(14);
         button.setGravity(Gravity.CENTER);
-        button.setLineSpacing(dp(2), 1f);
-        button.setPadding(dp(8), dp(6), dp(8), dp(6));
+        button.setLineSpacing(dp(1), 1f);
+        button.setPadding(dp(8), dp(4), dp(8), dp(4));
         button.setBackground(roundBackground(selected ? COLOR_SELECTED : COLOR_BUTTON, selected));
         button.setClickable(true);
         button.setFocusable(true);

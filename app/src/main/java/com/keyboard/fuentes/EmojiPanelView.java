@@ -69,20 +69,20 @@ class EmojiPanelView extends LinearLayout {
         hint.setText("Toca un emoji para insertarlo; el panel permanece abierto.");
         hint.setTextColor(COLOR_HINT);
         hint.setTextSize(12);
-        hint.setPadding(0, dp(8), 0, dp(8));
+        hint.setPadding(0, dp(6), 0, dp(6));
         addView(hint, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
         LinearLayout grid = new LinearLayout(getContext());
         grid.setOrientation(VERTICAL);
-        addView(grid, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f));
+        addView(grid, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
         int columns = 8;
         for (int start = 0; start < EMOJIS.length; start += columns) {
             LinearLayout row = new LinearLayout(getContext());
             row.setOrientation(HORIZONTAL);
             LinearLayout.LayoutParams rowParams =
-                    new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f);
-            rowParams.setMargins(0, dp(3), 0, dp(3));
+                    new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(44));
+            rowParams.setMargins(0, dp(2), 0, dp(2));
             grid.addView(row, rowParams);
 
             for (int column = 0; column < columns; column++) {
@@ -93,7 +93,7 @@ class EmojiPanelView extends LinearLayout {
                 String emoji = EMOJIS[index];
                 TextView button = new TextView(getContext());
                 button.setText(emoji);
-                button.setTextSize(22);
+                button.setTextSize(20);
                 button.setGravity(Gravity.CENTER);
                 button.setBackground(roundBackground());
                 button.setClickable(true);
