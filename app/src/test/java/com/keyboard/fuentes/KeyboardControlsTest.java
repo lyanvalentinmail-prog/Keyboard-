@@ -47,7 +47,35 @@ public class KeyboardControlsTest {
         int action = -1;
         boolean handled = true;
         int batches;
-        RecordingConnection(EditText editor) { super(editor, true); }
+        private final EditText editor;
+        RecordingConnection(EditText editor) {
+            super(editor, true);
+            this.editor = editor;
+        }
+        @Override public boolean commitText(CharSequence text, int newCursorPosition) {
+            android.text.Editable editable = editor.getText();
+            int start = Math.max(0, Math.min(android.text.Selection.getSelectionStart(editable), editable.length()));
+            int end = Math.max(0, Math.min(android.text.Selection.getSelectionEnd(editable), editable.length()));
+            editable.replace(Math.min(start, end), Math.max(start, end), text);
+            return true;
+        }
+        @Override public CharSequence getTextBeforeCursor(int length, int flags) {
+            android.text.Editable editable = editor.getText();
+            int end = Math.max(0, android.text.Selection.getSelectionEnd(editable));
+            return editable.subSequence(Math.max(0, end - length), end);
+        }
+        @Override public CharSequence getSelectedText(int flags) {
+            android.text.Editable editable = editor.getText();
+            int start = android.text.Selection.getSelectionStart(editable);
+            int end = android.text.Selection.getSelectionEnd(editable);
+            return start >= 0 && end > start ? editable.subSequence(start, end) : null;
+        }
+        @Override public boolean deleteSurroundingText(int before, int after) {
+            android.text.Editable editable = editor.getText();
+            int cursor = android.text.Selection.getSelectionEnd(editable);
+            editable.delete(Math.max(0, cursor - before), cursor);
+            return true;
+        }
         @Override public boolean performEditorAction(int editorAction) {
             action = editorAction;
             return handled;
@@ -79,7 +107,7 @@ public class KeyboardControlsTest {
         String[] panels = {"Elige la fuente", "Emojis", "Portapapeles", "Más opciones"};
         for (int i = 0; i < tools.length; i++) {
             clickTool(i);
-            assertTrue(visibleText(root, panels[i]));
+            assertTrue("Panel did not open: " + panels[i], visibleText(root, panels[i]));
             clickTool(i);
             assertFalse(visibleText(root, panels[i]));
         }
@@ -224,19 +252,27 @@ public class KeyboardControlsTest {
 
     private static void click(View root, String description) {
         View view = find(root, description);
+        if (view == null && description.startsWith("Tecla ") && description.length() == 7) {
+            view = find(root, description + ", mantén pulsada para ", true);
+        }
         assertNotNull("Missing control: " + description, view);
         assertTrue("Disabled control: " + description, view.performClick());
     }
 
     private static View find(View view, String description) {
-        if (view.getContentDescription() != null
-                && description.contentEquals(view.getContentDescription().toString())) {
+        return find(view, description, false);
+    }
+
+    private static View find(View view, String description, boolean prefix) {
+        CharSequence content = view.getContentDescription();
+        if (content != null && (prefix ? content.toString().startsWith(description)
+                : description.contentEquals(content.toString()))) {
             return view;
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
-                View found = find(group.getChildAt(i), description);
+                View found = find(group.getChildAt(i), description, prefix);
                 if (found != null) {
                     return found;
                 }
