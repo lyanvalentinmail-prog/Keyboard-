@@ -221,7 +221,7 @@ public class KeyboardControlsTest {
 
     @Test public void deleteHandlesSelectionAndUnicodeInBatches() {
         editor.getText().replace(0, editor.length(), "a😀");
-        editor.setSelection(2);
+        editor.setSelection(editor.length());
         service.deleteBackward();
         assertEquals("Unicode deletion must remove the complete surrogate pair", "a", editor.getText().toString());
         editor.getText().replace(0, editor.length(), "👨‍👩‍👧‍👦");

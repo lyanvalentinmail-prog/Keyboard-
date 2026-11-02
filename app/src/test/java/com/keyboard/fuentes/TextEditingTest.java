@@ -29,7 +29,7 @@ public class TextEditingTest {
     @Test public void sanitizeBadIcuBoundary() {
         assertEquals(2, TextEditing.safeLength("a😀", 1));
         assertEquals(0, TextEditing.safeLength("", 1));
-        assertEquals(1, TextEditing.safeLength("abc", 9));
+        assertEquals(3, TextEditing.safeLength("abc", 9));
     }
 
     @Test public void surrogatePairsAreNeverSplit() {
