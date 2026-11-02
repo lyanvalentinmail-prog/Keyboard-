@@ -78,14 +78,14 @@ class MorePanelView extends LinearLayout {
         TextView status = new TextView(getContext());
         status.setText("Fuente actual: " + style.getLabel() + "\n" + style.preview());
         status.setTextColor(COLOR_TEXT);
-        status.setTextSize(15);
-        status.setLineSpacing(dp(4), 1f);
+        status.setTextSize(14);
+        status.setLineSpacing(dp(2), 1f);
         status.setGravity(Gravity.CENTER);
-        status.setPadding(dp(12), dp(12), dp(12), dp(12));
+        status.setPadding(dp(12), dp(8), dp(12), dp(8));
         status.setBackground(buttonBackground(COLOR_CARD));
         LinearLayout.LayoutParams statusParams =
                 new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-        statusParams.setMargins(0, dp(12), 0, dp(8));
+        statusParams.setMargins(0, dp(8), 0, dp(6));
         addView(status, statusParams);
 
         TextView hint = new TextView(getContext());
@@ -93,7 +93,7 @@ class MorePanelView extends LinearLayout {
                 + "Mantén pulsado ⇧ para bloquear mayúsculas.");
         hint.setTextColor(COLOR_HINT);
         hint.setTextSize(12);
-        hint.setPadding(0, 0, 0, dp(10));
+        hint.setPadding(0, 0, 0, dp(6));
         addView(hint, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
         addView(actionButton("Elegir fuente", () -> listener.onOpenFonts()), actionParams());
@@ -109,9 +109,9 @@ class MorePanelView extends LinearLayout {
         TextView button = new TextView(getContext());
         button.setText(label);
         button.setTextColor(COLOR_TEXT);
-        button.setTextSize(15);
+        button.setTextSize(14);
         button.setGravity(Gravity.CENTER_VERTICAL);
-        button.setPadding(dp(14), dp(10), dp(14), dp(10));
+        button.setPadding(dp(12), dp(8), dp(12), dp(8));
         button.setBackground(buttonBackground(COLOR_BUTTON));
         button.setClickable(true);
         button.setFocusable(true);
@@ -123,7 +123,7 @@ class MorePanelView extends LinearLayout {
     private LinearLayout.LayoutParams actionParams() {
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-        params.setMargins(0, dp(4), 0, dp(4));
+        params.setMargins(0, dp(2), 0, dp(2));
         return params;
     }
 

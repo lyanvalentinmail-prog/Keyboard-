@@ -6,9 +6,13 @@ import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /** Vista completa del IME: barra de herramientas, teclas y paneles superpuestos. */
@@ -20,6 +24,7 @@ class KeyboardRootView extends LinearLayout implements
     }
 
     private static final int COLOR_BG = Color.parseColor("#111111");
+    private static final int COLOR_PANEL = Color.parseColor("#141414");
     private static final int COLOR_TOOLBAR = Color.parseColor("#181818");
     private static final int COLOR_DIVIDER = Color.parseColor("#2A2A2A");
     private static final Locale SPANISH = Locale.forLanguageTag("es");
@@ -41,12 +46,21 @@ class KeyboardRootView extends LinearLayout implements
     private final FontPickerView fontPicker;
     private final EmojiPanelView emojiPanel;
     private final MorePanelView morePanel;
+    private final View fontPanelWrapper;
+    private final View emojiPanelWrapper;
+    private final View morePanelWrapper;
+    private final List<ToolButtonView> toolButtons = new ArrayList<>();
 
+    private LinearLayout toolbar;
     private ToolButtonView fontButton;
     private ToolButtonView emojiButton;
     private ToolButtonView clipboardButton;
     private ToolButtonView settingsButton;
     private ToolButtonView moreButton;
+
+    private int toolbarHeightPx;
+    private int rowGapPx;
+    private int toolButtonSizePx;
 
     private FontStyle style;
     private boolean shift = false;
@@ -60,10 +74,14 @@ class KeyboardRootView extends LinearLayout implements
         this.service = service;
         this.style = service.getFontStyle();
 
+        toolbarHeightPx = dp(48);
+        rowGapPx = dp(3);
+        toolButtonSizePx = dp(38);
+
         setOrientation(VERTICAL);
         setBackgroundColor(COLOR_BG);
 
-        addView(createToolbar(), new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(56)));
+        addView(createToolbar(), new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, toolbarHeightPx));
 
         View separator = new View(context);
         separator.setBackgroundColor(COLOR_DIVIDER);
@@ -75,27 +93,82 @@ class KeyboardRootView extends LinearLayout implements
 
         keyArea = new LinearLayout(context);
         keyArea.setOrientation(VERTICAL);
-        keyArea.setPadding(0, dp(3), 0, dp(5));
+        keyArea.setPadding(0, rowGapPx, 0, rowGapPx + dp(2));
         body.addView(keyArea, matchParent());
 
         fontPicker = new FontPickerView(context, this);
-        fontPicker.setVisibility(GONE);
-        body.addView(fontPicker, matchParent());
+        fontPanelWrapper = scrollablePanel(fontPicker);
+        fontPanelWrapper.setVisibility(GONE);
+        body.addView(fontPanelWrapper, matchParent());
 
         emojiPanel = new EmojiPanelView(context, this);
-        emojiPanel.setVisibility(GONE);
-        body.addView(emojiPanel, matchParent());
+        emojiPanelWrapper = scrollablePanel(emojiPanel);
+        emojiPanelWrapper.setVisibility(GONE);
+        body.addView(emojiPanelWrapper, matchParent());
 
         morePanel = new MorePanelView(context, this);
-        morePanel.setVisibility(GONE);
-        body.addView(morePanel, matchParent());
+        morePanelWrapper = scrollablePanel(morePanel);
+        morePanelWrapper.setVisibility(GONE);
+        body.addView(morePanelWrapper, matchParent());
 
         buildKeyboard();
         setMode(Mode.KEYS);
     }
 
+    /** Fija un tamaño compacto y centrado abajo; las filas solo se reparten ese alto. */
+    void applyCompactBounds(int widthPx, int heightPx, int toolbarPx, int gapPx) {
+        toolbarHeightPx = Math.max(dp(30), toolbarPx);
+        rowGapPx = Math.max(1, gapPx);
+        toolButtonSizePx = Math.max(dp(24), toolbarHeightPx - dp(6));
+
+        ViewGroup.LayoutParams params = getLayoutParams();
+        if (params instanceof FrameLayout.LayoutParams) {
+            params.width = widthPx;
+            params.height = heightPx;
+            ((FrameLayout.LayoutParams) params).gravity =
+                    Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            setLayoutParams(params);
+        } else {
+            setLayoutParams(new FrameLayout.LayoutParams(widthPx, heightPx,
+                    Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+        }
+
+        if (toolbar != null) {
+            ViewGroup.LayoutParams toolbarParams = toolbar.getLayoutParams();
+            if (toolbarParams != null) {
+                toolbarParams.height = toolbarHeightPx;
+                toolbar.setLayoutParams(toolbarParams);
+            }
+        }
+        applyToolButtonSizes();
+        keyArea.setPadding(0, rowGapPx, 0, rowGapPx + dp(2));
+        buildKeyboard();
+        requestLayout();
+    }
+
+    private void applyToolButtonSizes() {
+        for (ToolButtonView button : toolButtons) {
+            ViewGroup.LayoutParams params = button.getLayoutParams();
+            if (params != null) {
+                params.width = toolButtonSizePx;
+                params.height = toolButtonSizePx;
+                button.setLayoutParams(params);
+            }
+        }
+    }
+
+    private View scrollablePanel(View panel) {
+        ScrollView scroll = new ScrollView(getContext());
+        scroll.setBackgroundColor(COLOR_PANEL);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scroll.addView(panel, new FrameLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        return scroll;
+    }
+
     private LinearLayout createToolbar() {
-        LinearLayout toolbar = new LinearLayout(getContext());
+        toolbar = new LinearLayout(getContext());
         toolbar.setOrientation(HORIZONTAL);
         toolbar.setBackgroundColor(COLOR_TOOLBAR);
         toolbar.setPadding(dp(6), 0, dp(6), 0);
@@ -134,7 +207,9 @@ class KeyboardRootView extends LinearLayout implements
         FrameLayout cell = new FrameLayout(getContext());
         ToolButtonView button = new ToolButtonView(getContext(), icon);
         button.configure(icon, description);
-        cell.addView(button, new FrameLayout.LayoutParams(dp(42), dp(42), Gravity.CENTER));
+        toolButtons.add(button);
+        cell.addView(button, new FrameLayout.LayoutParams(
+                toolButtonSizePx, toolButtonSizePx, Gravity.CENTER));
         toolbar.addView(cell, new LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f));
         return button;
     }
@@ -143,9 +218,9 @@ class KeyboardRootView extends LinearLayout implements
         stopBackspaceRepeat();
         mode = nextMode;
         keyArea.setVisibility(mode == Mode.KEYS ? VISIBLE : GONE);
-        fontPicker.setVisibility(mode == Mode.FONTS ? VISIBLE : GONE);
-        emojiPanel.setVisibility(mode == Mode.EMOJI ? VISIBLE : GONE);
-        morePanel.setVisibility(mode == Mode.MORE ? VISIBLE : GONE);
+        fontPanelWrapper.setVisibility(mode == Mode.FONTS ? VISIBLE : GONE);
+        emojiPanelWrapper.setVisibility(mode == Mode.EMOJI ? VISIBLE : GONE);
+        morePanelWrapper.setVisibility(mode == Mode.MORE ? VISIBLE : GONE);
 
         if (mode == Mode.FONTS) {
             fontPicker.setCurrentStyle(style);
@@ -280,7 +355,7 @@ class KeyboardRootView extends LinearLayout implements
     private LinearLayout newRow() {
         LinearLayout row = new LinearLayout(getContext());
         row.setOrientation(HORIZONTAL);
-        row.setPadding(dp(3), dp(3), dp(3), dp(3));
+        row.setPadding(rowGapPx, rowGapPx, rowGapPx, rowGapPx);
         keyArea.addView(row, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f));
         return row;
     }
@@ -288,7 +363,7 @@ class KeyboardRootView extends LinearLayout implements
     private void addKey(LinearLayout row, View key, float weight) {
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, weight);
-        params.setMargins(dp(3), 0, dp(3), 0);
+        params.setMargins(rowGapPx, 0, rowGapPx, 0);
         row.addView(key, params);
     }
 

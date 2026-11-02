@@ -95,6 +95,10 @@ class ToolButtonView extends View {
         iconPaint.setStrokeCap(Paint.Cap.ROUND);
         iconPaint.setStrokeJoin(Paint.Join.ROUND);
 
+        if (icon == Icon.FONT) {
+            textPaint.setTextSize(Math.min(sp(16), Math.max(sp(9), getHeight() * 0.42f)));
+        }
+
         switch (icon) {
             case FONT:
                 drawFont(canvas, centerX, centerY);
