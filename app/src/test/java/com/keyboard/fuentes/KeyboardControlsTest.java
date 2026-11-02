@@ -103,12 +103,12 @@ public class KeyboardControlsTest {
     }
 
     @Test public void toolbarOpensAndClosesEveryPanel() {
-        String[] tools = {"Cambiar fuente", "Abrir emojis", "Abrir portapapeles", "Más opciones"};
+        int[] tools = {0, 1, 2, 4};
         String[] panels = {"Elige la fuente", "Emojis", "Portapapeles", "Más opciones"};
         for (int i = 0; i < tools.length; i++) {
-            clickTool(i);
+            clickTool(tools[i]);
             assertTrue("Panel did not open: " + panels[i], visibleText(root, panels[i]));
-            clickTool(i);
+            clickTool(tools[i]);
             assertFalse(visibleText(root, panels[i]));
         }
         click(root, "Ajustes del teclado");
@@ -218,11 +218,11 @@ public class KeyboardControlsTest {
     }
 
     @Test public void deleteHandlesSelectionAndUnicodeInBatches() {
-        editor.setText("a😀");
+        editor.getText().replace(0, editor.length(), "a😀");
         editor.setSelection(2);
         service.deleteBackward();
         assertEquals("a", editor.getText().toString());
-        editor.setText("👨‍👩‍👧‍👦");
+        editor.getText().replace(0, editor.length(), "👨‍👩‍👧‍👦");
         editor.setSelection(editor.length());
         service.deleteBackward();
         assertEquals("", editor.getText().toString());
