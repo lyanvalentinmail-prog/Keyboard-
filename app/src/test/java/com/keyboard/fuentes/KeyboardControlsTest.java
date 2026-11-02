@@ -93,6 +93,8 @@ public class KeyboardControlsTest {
         service.setTheme(R.style.AppTheme);
         controller.create();
         editor = new EditText(service);
+        editor.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        editor.setFilters(new android.text.InputFilter[0]);
         editor.setSelection(0);
         connection = new RecordingConnection(editor);
         service.connection = connection;
@@ -221,7 +223,7 @@ public class KeyboardControlsTest {
         editor.getText().replace(0, editor.length(), "a😀");
         editor.setSelection(2);
         service.deleteBackward();
-        assertEquals("a", editor.getText().toString());
+        assertEquals("Unicode deletion must remove the complete surrogate pair", "a", editor.getText().toString());
         editor.getText().replace(0, editor.length(), "👨‍👩‍👧‍👦");
         editor.setSelection(editor.length());
         service.deleteBackward();
