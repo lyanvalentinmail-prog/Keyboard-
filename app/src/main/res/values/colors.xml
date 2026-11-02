@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="window_bg">#FF111111</color>
+    <color name="surface">#FF1E1E1E</color>
+    <color name="key">#FF303030</color>
+    <color name="input">#FF252525</color>
+    <color name="divider">#FF2A2A2A</color>
+    <color name="text_primary">#FFF5F5F5</color>
+    <color name="text_secondary">#FFAAAAAA</color>
+    <color name="accent">#FF4C8DFF</color>
+    <color name="warning">#FFFFB74D</color>
+</resources>

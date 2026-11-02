@@ -1,0 +1,25 @@
+# Android / Gradle
+.gradle/
+local.properties
+build/
+*/build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+
+# Generated distribution and connector scratch files
+dist/
+google_drive/

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Teclado Fuentes</string>
+    <string name="ime_name">Teclado Fuentes</string>
+    <string name="subtype_es_us">Español (US)</string>
+
+    <string name="main_title">Teclado Fuentes</string>
+    <string name="main_subtitle">Diseño oscuro estilo One UI con estilos de texto Unicode.</string>
+    <string name="status_checking">Comprobando el estado del teclado…</string>
+    <string name="status_active">Teclado activo. Ya puedes escribir con tu fuente favorita.</string>
+    <string name="status_enabled">Teclado habilitado. Falta elegirlo como teclado activo.</string>
+    <string name="status_not_enabled">Teclado desactivado. Habilítalo en los ajustes del sistema.</string>
+    <string name="btn_enable">Activar en Ajustes</string>
+    <string name="btn_choose">Elegir teclado</string>
+    <string name="btn_test">Probar el teclado</string>
+    <string name="preview_label">Vista previa de la fuente guardada</string>
+    <string name="preview_sample">Escribe con estilo: Aa 123</string>
+    <string name="test_hint">Escribe aquí para probar el teclado y el botón Aa…</string>
+    <string name="instructions_title">Cómo se usa</string>
+    <string name="instructions_text">1. Activa y selecciona el teclado.\n2. Pulsa Aa en la barra superior para elegir una fuente.\n3. Mantén pulsadas las teclas para escribir los símbolos pequeños.\n4. Usa !#1 para abrir los símbolos y la lupa para buscar o enviar.</string>
+    <string name="download_title">Descarga desde GitHub Actions</string>
+    <string name="download_text">En el repositorio, abre Actions, entra en Build Android APK y descarga el artefacto KeyboardFuentes-APK. Las etiquetas v* crean además una Release con descarga directa.</string>
+    <string name="icon_desc">Icono del teclado</string>
+    <string name="settings_error">No se pudieron abrir los ajustes de teclado.</string>
+</resources>
