@@ -71,7 +71,21 @@ jobs:
       - name: Ejecutar tests y compilar el APK firmado
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace testDebugUnitTest assembleRelease
+          set +e
+          ./gradlew --no-daemon --stacktrace testDebugUnitTest assembleRelease > build.log 2>&1
+          RESULT=$?
+          cat build.log
+          if [ "$RESULT" -ne 0 ]; then
+            python3 - <<'PYLOG'
+            from pathlib import Path
+            import re
+            lines = Path("build.log").read_text(errors="replace").splitlines()
+            selected = [line for line in lines if re.search(r"(^e:|error:|FAILED|What went wrong|Execution failed|Could not resolve|Caused by:|> Task)", line)]
+            for line in selected[-35:]:
+                print("::error title=Android build::" + line.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))
+            PYLOG
+          fi
+          exit "$RESULT"
 
       - name: Preparar archivos descargables
         run: |
