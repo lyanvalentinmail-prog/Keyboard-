@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  checks: write
 
 concurrency:
   group: build-apk-${{ github.ref }}
@@ -77,8 +78,19 @@ jobs:
           cat build.log
           if [ "$RESULT" -ne 0 ]; then
             python3 tools/report_build_errors.py build.log
+            python3 tools/report_test_failures.py
           fi
           exit "$RESULT"
+
+      - name: Adjuntar resultados de pruebas al commit
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -d app/build/test-results/testDebugUnitTest ]; then
+            python3 tools/report_test_failures.py > test-summary.md
+            gh api "repos/$GITHUB_REPOSITORY/check-runs"               -f name="Resultados de controles"               -f head_sha="$GITHUB_SHA"               -f status="completed"               -f conclusion="neutral"               -f "output[title]=Resultados de pruebas"               -F "output[summary]=@test-summary.md"               -f "output[text]=Consulta el artefacto KeyboardFuentes-TestReport para el informe completo."
+          fi
 
       - name: Publicar informe de pruebas
         if: always()
