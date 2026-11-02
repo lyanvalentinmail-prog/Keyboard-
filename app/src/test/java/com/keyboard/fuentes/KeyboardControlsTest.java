@@ -211,7 +211,8 @@ public class KeyboardControlsTest {
     }
 
     private static View find(View view, String description) {
-        if (description.contentEquals(view.getContentDescription())) {
+        if (view.getContentDescription() != null
+                && description.contentEquals(view.getContentDescription().toString())) {
             return view;
         }
         if (view instanceof ViewGroup) {

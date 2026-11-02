@@ -14,36 +14,32 @@ final class TextEditing {
             return 2;
         }
         int start = end - Character.charCount(Character.codePointBefore(text, end));
-        while (start > 0) {
-            int previous = Character.codePointBefore(text, start);
-            if (isExtending(previous)) {
-                start -= Character.charCount(previous);
-            } else if (previous == 0x200d && start >= 2) {
-                // Joiner and the complete preceding code point belong to this emoji.
-                start -= Character.charCount(previous);
+        // A variation selector, accent or skin tone belongs to the preceding base.
+        if (isExtending(Character.codePointAt(text, start))) {
+            while (start > 0 && isExtending(Character.codePointAt(text, start))) {
                 start -= Character.charCount(Character.codePointBefore(text, start));
-            } else {
-                break;
             }
         }
-        int codePoint = Character.codePointAt(text, start);
-        if (isRegionalIndicator(codePoint) && start > 0) {
-            int previous = Character.codePointBefore(text, start);
-            if (isRegionalIndicator(previous)) {
-                // Count the run so deleting the last of three flags does not eat its neighbor.
-                int count = 1;
-                int offset = start;
-                while (offset > 0) {
-                    int cp = Character.codePointBefore(text, offset);
-                    if (!isRegionalIndicator(cp)) {
-                        break;
-                    }
-                    count++;
-                    offset -= Character.charCount(cp);
+        // Walk complete segments backwards across emoji joiners.
+        while (start > 0 && Character.codePointBefore(text, start) == 0x200d) {
+            start--; // ZWJ is always one UTF-16 unit.
+            if (start > 0) {
+                start -= Character.charCount(Character.codePointBefore(text, start));
+                while (start > 0 && isExtending(Character.codePointAt(text, start))) {
+                    start -= Character.charCount(Character.codePointBefore(text, start));
                 }
-                if (count % 2 == 0) {
-                    start -= Character.charCount(previous);
-                }
+            }
+        }
+        if (isRegionalIndicator(Character.codePointAt(text, start))) {
+            int runStart = start;
+            int count = 1;
+            while (runStart > 0 && isRegionalIndicator(Character.codePointBefore(text, runStart))) {
+                runStart -= 2;
+                count++;
+            }
+            // Flags are pairs; an unpaired final indicator must not eat its neighbor.
+            if (count % 2 == 0) {
+                start -= 2;
             }
         }
         return end - start;
