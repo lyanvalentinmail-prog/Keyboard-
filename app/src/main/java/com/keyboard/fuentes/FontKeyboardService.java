@@ -253,7 +253,7 @@ public class FontKeyboardService extends InputMethodService {
                 }
             }
             CharSequence before = connection.getTextBeforeCursor(128, 0);
-            int count = graphemeLength(before);
+            int count = TextEditing.safeLength(before, graphemeLength(before));
             if (count > 0) {
                 connection.deleteSurroundingText(count, 0);
             }

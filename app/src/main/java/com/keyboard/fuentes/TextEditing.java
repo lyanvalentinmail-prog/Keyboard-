@@ -45,6 +45,20 @@ final class TextEditing {
         return end - start;
     }
 
+    /** Never let an editor or ICU implementation split a surrogate pair. */
+    static int safeLength(CharSequence text, int requested) {
+        if (text == null || text.length() == 0 || requested <= 0) {
+            return 0;
+        }
+        int count = Math.min(requested, text.length());
+        int boundary = text.length() - count;
+        if (boundary > 0 && Character.isLowSurrogate(text.charAt(boundary))
+                && Character.isHighSurrogate(text.charAt(boundary - 1))) {
+            count++;
+        }
+        return count;
+    }
+
     private static boolean isExtending(int cp) {
         int type = Character.getType(cp);
         return type == Character.NON_SPACING_MARK || type == Character.COMBINING_SPACING_MARK
