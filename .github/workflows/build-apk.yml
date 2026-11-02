@@ -1,0 +1,127 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compilar, probar y firmar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Instalar plataforma Android 34
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+
+      - name: Conservar la clave de firma entre ejecuciones
+        uses: actions/cache@v4
+        with:
+          path: .ci/keyboard-debug.keystore
+          key: ${{ runner.os }}-keyboard-debug-keystore-v2
+
+      - name: Crear clave de depuración estable si no existe
+        run: |
+          set -euo pipefail
+          mkdir -p .ci
+          KEYSTORE="$(pwd)/.ci/keyboard-debug.keystore"
+          if [ ! -f "$KEYSTORE" ]; then
+            keytool -genkeypair \
+              -keystore "$KEYSTORE" \
+              -storetype PKCS12 \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Android Debug, O=Android, C=US"
+          fi
+          echo "KEYBOARD_DEBUG_KEYSTORE=$KEYSTORE" >> "$GITHUB_ENV"
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          validate-wrappers: false
+
+      - name: Ejecutar tests y compilar el APK firmado
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace testDebugUnitTest assembleRelease
+
+      - name: Preparar archivos descargables
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          APK=$(find app/build/outputs/apk/release -type f -name '*.apk' -print -quit)
+          test -n "$APK"
+          cp "$APK" dist/KeyboardFuentes.apk
+          sha256sum dist/KeyboardFuentes.apk > dist/KeyboardFuentes.apk.sha256
+
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          APKSIGNER=$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          ZIPALIGN=$(find "$SDK_ROOT/build-tools" -type f -name zipalign | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose dist/KeyboardFuentes.apk
+          "$ZIPALIGN" -c 4 dist/KeyboardFuentes.apk
+
+          printf '%s\n' \
+            'Teclado Fuentes' \
+            '===============' \
+            '' \
+            '1. Descomprime este artefacto.' \
+            '2. Copia KeyboardFuentes.apk a tu teléfono Android.' \
+            '3. Permite la instalación desde orígenes desconocidos e instala el APK.' \
+            '4. Abre Teclado Fuentes y actívalo en Ajustes > Idiomas y entrada.' \
+            '' \
+            'Para comprobar la integridad:' \
+            '  sha256sum -c KeyboardFuentes.apk.sha256' > dist/LEEME.txt
+
+          {
+            echo "### APK listo ✅"
+            echo ""
+            echo "Descarga el artefacto **KeyboardFuentes-APK** desde esta ejecución."
+            echo ""
+            echo '```'
+            cat dist/KeyboardFuentes.apk.sha256
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir APK como artefacto del workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: KeyboardFuentes-APK
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar GitHub Release en etiquetas v*
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/KeyboardFuentes.apk \
+            dist/KeyboardFuentes.apk.sha256 \
+            --title "Teclado Fuentes $GITHUB_REF_NAME" \
+            --generate-notes
